@@ -1,4 +1,4 @@
-from server import mcp
+from servers.pride_mcp_server import mcp
 import httpx
 
 """
