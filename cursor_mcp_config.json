@@ -1,0 +1,78 @@
+{
+  "mcpServers": {
+    "pride-mcp-server": {
+      "command": "uv",
+      "args": ["run", "python", "main.py", "--host", "127.0.0.1", "--port", "9000"],
+      "env": {
+        "GEMINI_API_KEY": ""
+      },
+      "description": "PRIDE Archive MCP Server with Gemini 2.0 Flash integration for proteomics data exploration",
+      "tools": {
+        "get_pride_facets": {
+          "description": "Fetch available filter values from the PRIDE Archive facet endpoint. Always call this first to understand what filters are available before searching. Returns organisms, experiment types, instruments, keywords, diseases, and more.",
+          "parameters": {
+            "facet_page_size": "Number of facet values per page (default: 100)",
+            "facet_page": "Page number for pagination (default: 0)"
+          },
+          "usage": "Use this to discover available filter values before searching"
+        },
+        "fetch_projects": {
+          "description": "Search for proteomics projects in the PRIDE Archive database. IMPORTANT: Always call get_pride_facets first to understand available filters.",
+          "parameters": {
+            "keyword": "Search keyword (e.g., 'cancer', 'proteomics')",
+            "page_size": "Results per page (default: 25)",
+            "page": "Page number (default: 0)",
+            "sort_direction": "Sort direction: 'ASC' or 'DESC' (default: 'DESC')",
+            "sort_fields": "Sort by field (default: 'downloadCount')",
+            "filters": "Comma-separated filters (e.g., 'organisms==Homo sapiens (human),experimentTypes==Shotgun proteomics')"
+          },
+          "usage": "Search for projects with keywords and filters"
+        },
+        "get_project_details": {
+          "description": "Get detailed information about a specific proteomics project by its accession number.",
+          "parameters": {
+            "project_accession": "PRIDE project accession number (e.g., 'PXD000001')"
+          },
+          "usage": "Get detailed project information"
+        },
+        "get_project_files": {
+          "description": "Get file information for a specific proteomics project.",
+          "parameters": {
+            "project_accession": "PRIDE project accession number",
+            "file_type": "Optional file type filter (e.g., 'RAW', 'MGF')"
+          },
+          "usage": "Get project file information"
+        }
+      },
+      "examples": [
+        {
+          "query": "Find human proteomics studies on breast cancer",
+          "steps": [
+            "Call get_pride_facets to see available organisms and tissues",
+            "Call fetch_projects with keyword='cancer' and filters='organisms==Homo sapiens (human),organismsPart==Breast'"
+          ]
+        },
+        {
+          "query": "Search for mouse proteomics data using SWATH MS",
+          "steps": [
+            "Call get_pride_facets to see available experiment types",
+            "Call fetch_projects with keyword='proteomics' and filters='organisms==Mus musculus (mouse),experimentTypes==SWATH MS'"
+          ]
+        },
+        {
+          "query": "Get details for project PXD000001",
+          "steps": [
+            "Call get_project_details with project_accession='PXD000001'"
+          ]
+        }
+      ],
+      "filter_examples": {
+        "organisms": "organisms==Homo sapiens (human), organisms==Mus musculus (mouse), organisms==Rattus norvegicus (rat)",
+        "organismsPart": "organismsPart==Breast, organismsPart==Brain, organismsPart==Liver",
+        "experimentTypes": "experimentTypes==Shotgun proteomics, experimentTypes==SWATH MS, experimentTypes==DIA",
+        "softwares": "softwares==MaxQuant, softwares==Mascot, softwares==Proteome Discoverer",
+        "diseases": "diseases==Breast cancer, diseases==Alzheimer's disease, diseases==Diabetes"
+      }
+    }
+  }
+} 

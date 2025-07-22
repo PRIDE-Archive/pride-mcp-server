@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PRIDE MCP Server - Natural Language Interface</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div x-data="mcpUI()" class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">🧬 PRIDE MCP Server</h1>
+            <p class="text-xl text-gray-600 mb-4">Natural Language Interface for Proteomics Research</p>
+            
+            <!-- Status Indicators -->
+            <div class="flex justify-center gap-4 mb-6">
+                <div class="flex items-center gap-2">
+                    <div class="w-3 h-3 rounded-full" :class="geminiEnabled ? 'bg-green-500' : 'bg-red-500'"></div>
+                    <span class="text-sm font-medium" :class="geminiEnabled ? 'text-green-700' : 'text-red-700'">
+                        Gemini Pro: <span x-text="geminiEnabled ? 'Enabled' : 'Disabled'"></span>
+                    </span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div class="w-3 h-3 rounded-full bg-blue-500"></div>
+                    <span class="text-sm font-medium text-blue-700">MCP Server: {{ mcp_server_url }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Left Column - Ask Questions -->
+            <div class="space-y-6">
+                <!-- Natural Language Questions -->
+                <div class="bg-white rounded-lg shadow-md card-hover p-6">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4">💬 Ask Questions</h3>
+                    <form @submit.prevent="askQuestion()" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Your Question</label>
+                            <textarea x-model="questionForm.question" rows="4"
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                      placeholder="Ask me anything about proteomics data, research, or analysis..."></textarea>
+                        </div>
+                        <button type="submit" 
+                                class="w-full bg-indigo-600 text-white py-3 px-4 rounded-md hover:bg-indigo-700 transition-colors font-medium"
+                                :disabled="loading">
+                            <span x-show="!loading">Ask Question</span>
+                            <span x-show="loading">Processing...</span>
+                        </button>
+                    </form>
+                    
+                    <!-- Autocomplete Search -->
+                    <div class="mt-6 p-4 bg-blue-50 rounded-md">
+                        <h4 class="text-sm font-medium text-blue-700 mb-3">🔍 Smart Search with Autocomplete:</h4>
+                        <div class="relative">
+                            <input type="text" 
+                                   x-model="searchQuery" 
+                                   @input="searchAutocomplete()"
+                                   @focus="showAutocomplete = true"
+                                   @blur="setTimeout(() => showAutocomplete = false, 200)"
+                                   placeholder="Start typing to search projects..."
+                                   class="w-full p-3 border border-blue-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            
+                            <!-- Autocomplete Dropdown -->
+                            <div x-show="showAutocomplete && autocompleteResults.length > 0" 
+                                 class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                                <template x-for="result in autocompleteResults" :key="result.term">
+                                    <div @click="selectAutocomplete(result.term)" 
+                                         class="p-3 hover:bg-gray-100 cursor-pointer border-b border-gray-200 last:border-b-0">
+                                        <div class="font-medium text-gray-800" x-text="result.term"></div>
+                                        <div class="text-sm text-gray-600" x-text="result.count + ' projects'"></div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+
+
+
+                    <!-- Sample Queries -->
+                    <div class="mt-6 p-4 bg-purple-50 rounded-md">
+                        <h4 class="text-sm font-medium text-purple-700 mb-3">🎯 Sample Queries:</h4>
+                        
+                        <div class="space-y-2 text-sm text-green-600">
+                            <div class="cursor-pointer hover:text-green-800 p-2 rounded hover:bg-green-100 transition-colors" 
+                                 @click="questionForm.question = 'Find human proteomics studies on breast cancer'">
+                                • Find human proteomics studies on breast cancer
+                            </div>
+                            <div class="cursor-pointer hover:text-green-800 p-2 rounded hover:bg-green-100 transition-colors" 
+                                 @click="questionForm.question = 'Search for mouse proteomics on cancer using SWATH MS'">
+                                • Search for mouse proteomics on cancer using SWATH MS
+                            </div>
+                            <div class="cursor-pointer hover:text-green-800 p-2 rounded hover:bg-green-100 transition-colors" 
+                                 @click="questionForm.question = 'Find rat proteomics studies on brain tissue'">
+                                • Find rat proteomics studies on brain tissue
+                            </div>
+                            <div class="cursor-pointer hover:text-green-800 p-2 rounded hover:bg-green-100 transition-colors" 
+                                 @click="questionForm.question = 'Search for yeast proteomics studies using MaxQuant'">
+                                • Search for yeast proteomics studies using MaxQuant
+                            </div>
+                            <div class="cursor-pointer hover:text-green-800 p-2 rounded hover:bg-green-100 transition-colors" 
+                                 @click="questionForm.question = 'Find Arabidopsis proteomics studies on leaf tissue'">
+                                • Find Arabidopsis proteomics studies on leaf tissue
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+            </div>
+
+            <!-- Right Column - Results -->
+            <div class="space-y-6">
+                <!-- Results Display -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4">📊 Results</h3>
+                    
+                    <!-- Loading State -->
+                    <div x-show="loading" class="text-center py-8">
+                        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                        <p class="mt-4 text-gray-600">Processing your question...</p>
+                    </div>
+
+                    <!-- Error State -->
+                    <div x-show="error" class="bg-red-50 border border-red-200 rounded-md p-4">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="text-sm font-medium text-red-800">Error</h3>
+                                <div class="mt-2 text-sm text-red-700">
+                                    <p x-text="error"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Success Results -->
+                    <div x-show="result && !loading && !error" class="space-y-4">
+
+                        <!-- AI Analysis -->
+                        <div x-show="result.ai_analysis" class="bg-purple-50 border border-purple-200 rounded-md p-4">
+                            <h4 class="text-lg font-medium text-purple-800 mb-2">🤖 Gemini Pro Analysis</h4>
+                            <div class="prose prose-sm max-w-none text-purple-700" x-html="formatAnalysis(result.ai_analysis)"></div>
+                        </div>
+
+                        <!-- Research Suggestions -->
+                        <div x-show="result.research_suggestions" class="bg-green-50 border border-green-200 rounded-md p-4">
+                            <h4 class="text-lg font-medium text-green-800 mb-2">💡 Research Suggestions</h4>
+                            <div class="prose prose-sm max-w-none text-green-700" x-html="formatAnalysis(result.research_suggestions)"></div>
+                        </div>
+
+                        <!-- Project Synopsis -->
+                        <div x-show="result.synopsis" class="bg-indigo-50 border border-indigo-200 rounded-md p-4">
+                            <h4 class="text-lg font-medium text-indigo-800 mb-2">📋 Project Synopsis</h4>
+                            <div class="prose prose-sm max-w-none text-indigo-700" x-html="formatAnalysis(result.synopsis)"></div>
+                        </div>
+
+                        <!-- Project Comparison -->
+                        <div x-show="result.comparison_analysis" class="bg-purple-50 border border-purple-200 rounded-md p-4">
+                            <h4 class="text-lg font-medium text-purple-800 mb-2">🔍 Project Comparison</h4>
+                            <div class="prose prose-sm max-w-none text-purple-700" x-html="formatAnalysis(result.comparison_analysis)"></div>
+                        </div>
+
+                        <!-- Multi-Tool Analysis -->
+                        <div x-show="result.comprehensive_analysis" class="bg-orange-50 border border-orange-200 rounded-md p-4">
+                            <h4 class="text-lg font-medium text-orange-800 mb-2">🔧 Multi-Tool Analysis</h4>
+                            <div class="mb-4">
+                                <h5 class="text-md font-medium text-orange-700 mb-2">Execution Summary:</h5>
+                                <div class="text-sm text-orange-600 mb-3">
+                                    <p><strong>Tools Executed:</strong> <span x-text="result.tools_executed || 'Multiple tools'"></span></p>
+                                    <p><strong>Analysis Plan:</strong> <span x-text="result.analysis_plan || 'Multi-step analysis'"></span></p>
+                                </div>
+                                <div class="bg-orange-100 p-3 rounded text-sm">
+                                    <h6 class="font-medium mb-2">Tool Execution Steps:</h6>
+                                    <template x-for="step in result.execution_results" :key="step.step">
+                                        <div class="mb-2 p-2 bg-white rounded">
+                                            <span class="font-medium" x-text="'Step ' + step.step + ': ' + step.description"></span>
+                                            <span class="text-xs text-gray-600 ml-2" x-text="step.tool"></span>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                            <div class="prose prose-sm max-w-none text-orange-700" x-html="formatAnalysis(result.comprehensive_analysis)"></div>
+                        </div>
+
+                        <!-- Intent Analysis -->
+                        <div x-show="result.intent_analysis" class="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+                            <h4 class="text-lg font-medium text-yellow-800 mb-2">🧠 Intent Analysis</h4>
+                            <div class="text-sm text-yellow-700">
+                                <p><strong>Action:</strong> <span x-text="result.intent_analysis.action"></span></p>
+                                <p><strong>Reasoning:</strong> <span x-text="result.intent_analysis.reasoning"></span></p>
+                            </div>
+                        </div>
+
+                        <!-- Search Summary -->
+                        <div x-show="result.search_summary" class="bg-green-50 border border-green-200 rounded-md p-4 mb-4">
+                            <h4 class="text-lg font-medium text-green-800 mb-2">📊 Search Summary</h4>
+                            <div class="text-sm text-green-700 mb-3">
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <p><strong>Total Projects Found:</strong> <span x-text="result.search_summary.total_projects_found"></span></p>
+                                        <p><strong>Search Strategy:</strong>
+                                            <span class="text-green-600 font-medium">🎯 Expert Proteomics Search Assistant</span>
+                                        </p>
+                                                    <p class="text-sm text-gray-600 mt-1">
+                • Strategic keyword extraction (avoids generic terms) • Uses facet API for data distribution • Selects precision vs exploratory strategy • Constructs optimized filters and keywords • Provides refinement suggestions
+            </p>
+                                        <p><strong>Keywords Used:</strong> <span x-text="result.search_summary.keywords_used || 'None'"></span></p>
+                                        <p x-show="result.search_summary.filters_used"><strong>Filters Used:</strong> <span class="font-mono text-xs" x-text="result.search_summary.filters_used"></span></p>
+                                    </div>
+                                    <div>
+                                        <p><strong>Search Strategies:</strong> <span x-text="result.search_summary.successful_strategies.length"></span> successful</p>
+                                        <p><strong>Enriched Projects:</strong> <span x-text="result.enriched_projects?.length || 0"></span> with details</p>
+                                    </div>
+                                </div>
+                                
+                                <!-- Search Strategy Details -->
+                                <div x-show="result.search_summary.successful_strategies.length > 0" class="mt-3 bg-green-100 p-3 rounded">
+                                    <h6 class="font-medium mb-2 text-green-700">🔍 Search Strategy Details:</h6>
+                                    <div class="space-y-1">
+                                        <template x-for="strategy in result.search_summary.successful_strategies" :key="strategy.name">
+                                            <div class="flex justify-between items-center text-xs">
+                                                <span x-text="strategy.name"></span>
+                                                <div class="flex items-center gap-2">
+                                                    <span x-text="strategy.results + ' projects'"></span>
+                                                    <span x-show="strategy.filtered" class="bg-green-200 text-green-800 px-1 py-0.5 rounded text-xs">Filtered</span>
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                                
+                                <!-- Search Reasoning -->
+                                <div x-show="result.search_summary.search_reasoning" class="mt-3 bg-blue-100 p-3 rounded">
+                                    <h6 class="font-medium mb-2 text-blue-700">💡 Search Reasoning:</h6>
+                                    <p class="text-xs text-blue-600" x-text="result.search_summary.search_reasoning"></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Search Results -->
+                        <div x-show="result.data && Array.isArray(result.data) && result.data.length > 0" class="bg-blue-50 border border-blue-200 rounded-md p-4">
+                            <h4 class="text-lg font-medium text-blue-800 mb-2">🔍 Search Results</h4>
+                            <div class="text-sm text-blue-700 mb-3">
+                                <p><strong>Total Results:</strong> <span x-text="result.data.length"></span></p>
+                                <p x-show="result.enriched"><strong>Enriched Projects:</strong> <span x-text="result.enriched_projects?.length || 0"></span> projects with details</p>
+                            </div>
+                            
+                            <!-- EBI API Endpoints -->
+                            <div class="bg-blue-100 p-3 rounded mb-4">
+                                <h5 class="font-medium mb-2 text-blue-700">🌐 EBI API Endpoints Called:</h5>
+                                <div class="text-sm space-y-2">
+                                    <div class="bg-white p-2 rounded">
+                                        <strong>Search API:</strong> 
+                                        <span class="font-mono text-xs" x-text="result.endpoint_url || 'https://www.ebi.ac.uk/pride/ws/archive/v3/search/projects'"></span>
+                                        <div class="mt-1 text-xs text-gray-600">
+                                            <strong>Parameters:</strong> 
+                                            <span x-text="JSON.stringify(result.parameters || result.search_criteria || {}, null, 2)"></span>
+                                        </div>
+                                    </div>
+                                    <div x-show="result.enriched" class="bg-white p-2 rounded">
+                                        <strong>Project Details API:</strong> 
+                                        <span class="font-mono text-xs">https://www.ebi.ac.uk/pride/ws/archive/v3/projects/{project_id}</span>
+                                        <div class="mt-1 text-xs text-gray-600">
+                                            <strong>Called for:</strong> 
+                                            <span x-text="result.enriched_projects?.map(p => p.accession).join(', ') || ''"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Enriched Project Details -->
+                            <div x-show="result.enriched_projects && result.enriched_projects.length > 0" class="mb-4">
+                                <h5 class="font-medium mb-2 text-blue-700">📋 Project Details & Synopses:</h5>
+                                <div class="space-y-3">
+                                    <template x-for="project in result.enriched_projects" :key="project.accession">
+                                        <div class="bg-white p-3 rounded border">
+                                            <div class="flex justify-between items-start mb-2">
+                                                <div class="flex items-center gap-2">
+                                                    <h6 class="font-medium text-blue-800">
+                                                        <a x-show="project.ebi_link" :href="project.ebi_link" target="_blank" class="hover:underline" x-text="project.accession"></a>
+                                                        <span x-show="!project.ebi_link" x-text="project.accession"></span>
+                                                    </h6>
+                                                    <span x-show="project.relevance_score" class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded" x-text="'Score: ' + project.relevance_score.toFixed(1)"></span>
+                                                </div>
+                                                <span class="text-xs text-gray-500" x-text="project.details?.submissionDate || ''"></span>
+                                            </div>
+                                            
+                                            <!-- Matched Keywords -->
+                                            <div x-show="project.matched_keywords && project.matched_keywords.length > 0" class="mb-2">
+                                                <div class="flex flex-wrap gap-1">
+                                                    <span class="text-xs text-gray-600">🎯 Keywords:</span>
+                                                    <template x-for="keyword in project.matched_keywords" :key="keyword">
+                                                        <span class="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded font-mono border border-orange-200" x-text="keyword"></span>
+                                                    </template>
+                                                </div>
+                                            </div>
+                                            
+                                            <div x-show="project.details?.title" class="text-sm font-medium text-gray-800 mb-1" x-text="project.details.title"></div>
+                                            <div x-show="project.brief_synopsis" class="text-sm text-gray-600 mb-2" x-text="project.brief_synopsis"></div>
+                                            <div class="flex flex-wrap gap-2 text-xs">
+                                                <span x-show="project.details?.organism?.name" class="bg-gray-100 px-2 py-1 rounded" x-text="project.details.organism.name"></span>
+                                                <span x-show="project.details?.instrument" class="bg-gray-100 px-2 py-1 rounded" x-text="project.details.instrument"></span>
+                                                <span x-show="project.details?.filesCount" class="bg-gray-100 px-2 py-1 rounded" x-text="project.details.filesCount + ' files'"></span>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                            
+                            <!-- All Project Accessions -->
+                            <div class="bg-blue-100 p-3 rounded">
+                                <h5 class="font-medium mb-2">All Project Accessions:</h5>
+                                <div class="text-sm space-y-1">
+                                    <template x-for="project in result.data" :key="project">
+                                        <div class="p-2 bg-white rounded flex items-center gap-2">
+                                            <a :href="'https://www.ebi.ac.uk/pride/archive/projects/' + project" target="_blank" class="font-mono text-blue-600 hover:underline" x-text="project"></a>
+                                            <!-- Keyword Matches -->
+                                            <div x-show="result.keyword_matches && result.keyword_matches[project]" class="flex flex-wrap gap-1">
+                                                <template x-for="keyword in result.keyword_matches[project]" :key="keyword">
+                                                    <span class="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded font-mono border border-orange-200" x-text="keyword"></span>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- No Results Found -->
+                        <div x-show="result.data && Array.isArray(result.data) && result.data.length === 0" class="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+                            <h4 class="text-lg font-medium text-yellow-800 mb-2">🔍 No Projects Found</h4>
+                            <div class="text-sm text-yellow-700 mb-3">
+                                <p><strong>Search Query:</strong> <span x-text="result.search_query || 'Unknown'"></span></p>
+                                <p><strong>Reason:</strong> <span x-text="result.no_results_reason || 'No projects match the specified criteria'"></span></p>
+                            </div>
+                            
+                            <!-- EBI API Endpoints -->
+                            <div class="bg-yellow-100 p-3 rounded mb-4">
+                                <h5 class="font-medium mb-2 text-yellow-700">🌐 EBI API Endpoints Called:</h5>
+                                <div class="text-sm space-y-2">
+                                    <div class="bg-white p-2 rounded">
+                                        <strong>Search API:</strong> 
+                                        <span class="font-mono text-xs">https://www.ebi.ac.uk/pride/ws/archive/v3/search/projects</span>
+                                        <div class="mt-1 text-xs text-gray-600">
+                                            <strong>Parameters:</strong> 
+                                            <span x-text="JSON.stringify(result.search_criteria || {}, null, 2)"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Suggestions -->
+                            <div class="bg-yellow-100 p-3 rounded">
+                                <h5 class="font-medium mb-2 text-yellow-700">💡 Suggestions:</h5>
+                                <div class="text-sm text-yellow-700 space-y-1">
+                                    <p>• Try using broader search terms</p>
+                                    <p>• Remove specific filters that might be too restrictive</p>
+                                    <p>• Check spelling of disease names or technical terms</p>
+                                    <p>• Try searching for related terms or synonyms</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Generic Data Display -->
+                        <div x-show="result.data && !Array.isArray(result.data)" class="bg-gray-50 border border-gray-200 rounded-md p-4">
+                            <h4 class="text-lg font-medium text-gray-800 mb-2">Data</h4>
+                            <pre class="text-sm text-gray-700 overflow-x-auto" x-text="JSON.stringify(result.data, null, 2)"></pre>
+                        </div>
+
+                        <!-- Reasoning -->
+                        <div x-show="result.reasoning" class="bg-green-50 border border-green-200 rounded-md p-4">
+                            <h4 class="text-lg font-medium text-green-800 mb-2">Reasoning</h4>
+                            <p class="text-green-700" x-text="result.reasoning"></p>
+                        </div>
+                    </div>
+
+                    <!-- Empty State -->
+                    <div x-show="!result && !loading && !error" class="text-center py-8 text-gray-500">
+                        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        </svg>
+                        <h3 class="mt-2 text-sm font-medium text-gray-900">Ask a question</h3>
+                        <p class="mt-1 text-sm text-gray-500">Use natural language to explore proteomics data and get intelligent insights.</p>
+                    </div>
+                </div>
+
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function mcpUI() {
+            return {
+                loading: false,
+                error: null,
+                result: null,
+                geminiEnabled: {{ 'true' if gemini_enabled else 'false' }},
+                
+                // Autocomplete functionality
+                searchQuery: '',
+                showAutocomplete: false,
+                autocompleteResults: [],
+                
+
+                
+                questionForm: {
+                    question: ''
+                },
+
+
+
+                async askQuestion() {
+                    this.loading = true;
+                    this.error = null;
+                    
+                    try {
+                        const formData = new FormData();
+                        formData.append('question', this.questionForm.question);
+                        
+                        const response = await fetch('/api/ask-question', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (data.success) {
+                            this.result = data.data;
+                        } else {
+                            this.error = data.error;
+                        }
+                    } catch (err) {
+                        this.error = err.message;
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+
+
+
+                clearResults() {
+                    this.result = null;
+                    this.error = null;
+                },
+
+                // Autocomplete methods
+                async searchAutocomplete() {
+                    if (this.searchQuery.length < 2) {
+                        this.autocompleteResults = [];
+                        return;
+                    }
+                    
+                    // Predefined autocomplete suggestions based on common search terms
+                    const suggestions = [
+                        { term: 'cancer', count: 6323 },
+                        { term: 'breast cancer', count: 1247 },
+                        { term: 'pancreatic cancer', count: 892 },
+                        { term: 'lung cancer', count: 1567 },
+                        { term: 'colorectal cancer', count: 743 },
+                        { term: 'prostate cancer', count: 634 },
+                        { term: 'SWATH-MS', count: 445 },
+                        { term: 'DIA', count: 1234 },
+                        { term: 'Q Exactive', count: 2341 },
+                        { term: 'Orbitrap', count: 3456 },
+                        { term: 'biomarker', count: 2345 },
+                        { term: 'mass spectrometry', count: 5678 },
+                        { term: 'proteomics', count: 8901 },
+                        { term: 'human', count: 4567 },
+                        { term: 'mouse', count: 2345 },
+                        { term: 'rat', count: 1234 },
+                        { term: 'immunotherapy', count: 567 },
+                        { term: 'drug resistance', count: 789 },
+                        { term: 'metastasis', count: 456 },
+                        { term: 'tumor', count: 2345 }
+                    ];
+                    
+                    // Filter suggestions based on search query
+                    this.autocompleteResults = suggestions.filter(suggestion => 
+                        suggestion.term.toLowerCase().includes(this.searchQuery.toLowerCase())
+                    ).slice(0, 8);
+                },
+
+                selectAutocomplete(term) {
+                    this.searchQuery = term;
+                    this.showAutocomplete = false;
+                    this.questionForm.question = `Find proteomics projects related to ${term}`;
+                },
+
+                formatAnalysis(text) {
+                    if (!text) return '';
+                    return text.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                }
+            }
+        }
+    </script>
+</body>
+</html> 

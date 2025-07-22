@@ -1,4 +1,3 @@
-from mcp.server.fastmcp import FastMCP
-
-mcp = FastMCP(name="pride_mcp_server", stateless_http=True)
+# Import the MCP instance from tools
+from tools.pride_archive_public_api import mcp
 
