@@ -114,29 +114,19 @@ spec:
               memory: "512Mi"
               cpu: "500m"
           livenessProbe:
-            httpGet:
-              path: /health
+            tcpSocket:
               port: 9000
-            initialDelaySeconds: 120
+            initialDelaySeconds: 180
             periodSeconds: 60
             timeoutSeconds: 15
             failureThreshold: 3
           readinessProbe:
-            httpGet:
-              path: /health
+            tcpSocket:
               port: 9000
-            initialDelaySeconds: 90
-            periodSeconds: 20
+            initialDelaySeconds: 120
+            periodSeconds: 30
             timeoutSeconds: 10
             failureThreshold: 5
-          startupProbe:
-            httpGet:
-              path: /health
-              port: 9000
-            initialDelaySeconds: 60
-            periodSeconds: 20
-            timeoutSeconds: 15
-            failureThreshold: 30
       volumes:
         - name: database-storage
           persistentVolumeClaim:
@@ -156,8 +146,9 @@ spec:
     - protocol: TCP
       port: 9000
       targetPort: 9000
+      nodePort: 30090
       name: mcp
-  type: ClusterIP
+  type: NodePort
 ---
 apiVersion: v1
 kind: Service
@@ -173,8 +164,9 @@ spec:
     - protocol: TCP
       port: 9090
       targetPort: 9090
+      nodePort: 30091
       name: ui
-  type: ClusterIP
+  type: NodePort
 ---
 apiVersion: v1
 kind: Service
@@ -190,8 +182,9 @@ spec:
     - protocol: TCP
       port: 8080
       targetPort: 8080
+      nodePort: 30092
       name: analytics
-  type: ClusterIP
+  type: NodePort
 ---
 # Internal Kubernetes Ingress for path-based routing
 # This handles routing within the cluster after EBI load balancer sends traffic
