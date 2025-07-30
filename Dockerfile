@@ -36,5 +36,5 @@ EXPOSE 9000 9090
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:9000/mcp/ || exit 1
 
-# Start both servers using the start_services script
-CMD ["uv", "run", "python", "start_services.py"] 
+# Start both servers using the Kubernetes startup script
+CMD ["uv", "run", "python", "start_kubernetes.py"] 
