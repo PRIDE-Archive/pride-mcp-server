@@ -3,6 +3,7 @@ from starlette.middleware.cors import CORSMiddleware
 from fastapi import FastAPI
 import uvicorn
 import logging
+from datetime import datetime
 from database import db
 from slack_integration import slack
 
@@ -60,9 +61,9 @@ async def startup_event():
     async def send_slack_notification():
         try:
             await slack.send_system_status("online", {
-                "server_url": "http://127.0.0.1:9000",
-                "mcp_endpoint": "http://127.0.0.1:9000/mcp/",
-                "api_endpoint": "http://127.0.0.1:9000/api/"
+                "server_url": "http://0.0.0.0:9000",
+                "mcp_endpoint": "http://0.0.0.0:9000/mcp/",
+                "api_endpoint": "http://0.0.0.0:9000/api/"
             })
         except Exception as e:
             logger.warning(f"⚠️ Failed to send Slack startup notification: {e}")
@@ -109,9 +110,9 @@ async def health_check():
 
 if __name__ == "__main__":
     print("🚀 Starting PRIDE MCP Server...")
-    print("   Server URL: http://127.0.0.1:9000")
-    print("   MCP Endpoint: http://127.0.0.1:9000/mcp/")
-    print("   API Endpoint: http://127.0.0.1:9000/api/")
-    print("   Documentation: http://127.0.0.1:9000/docs")
+    print("   Server URL: http://0.0.0.0:9000")
+    print("   MCP Endpoint: http://0.0.0.0:9000/mcp/")
+    print("   API Endpoint: http://0.0.0.0:9000/api/")
+    print("   Documentation: http://0.0.0.0:9000/docs")
     print("   Log Level: INFO")
-    uvicorn.run(app, host="127.0.0.1", port=9000, log_level="info", access_log=True) 
+    uvicorn.run(app, host="0.0.0.0", port=9000, log_level="info", access_log=True) 
