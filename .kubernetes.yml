@@ -1,11 +1,4 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: $k8s_namespace
-  labels:
-    name: $k8s_namespace
-    app: $app_name
----
+
 apiVersion: v1
 kind: ConfigMap
 metadata:
