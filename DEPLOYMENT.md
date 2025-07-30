@@ -78,17 +78,41 @@ kubectl logs -f deployment/pride-mcp-server -n pride-mcp
 
 ## Access Points
 
-All services are accessible under the EBI PRIDE domain with different paths:
+All services are accessible under the EBI PRIDE domain with hierarchical paths:
 
-- **Web UI (Main)**: `https://www.ebi.ac.uk/pride/services/mcp_ui/`
-- **MCP Server**: `https://www.ebi.ac.uk/pride/services/mcp/`
-- **API Endpoints**: `https://www.ebi.ac.uk/pride/services/mcp_api/`
-- **Analytics Dashboard**: `https://www.ebi.ac.uk/pride/services/mcp_analysis_ui/`
-- **API Documentation**: `https://www.ebi.ac.uk/pride/services/mcp_api/docs`
+- **Web UI (Main)**: `https://www.ebi.ac.uk/pride/services/pride-mcp/ui/`
+- **MCP Server**: `https://www.ebi.ac.uk/pride/services/pride-mcp/mcp/`
+- **API Endpoints**: `https://www.ebi.ac.uk/pride/services/pride-mcp/api/`
+- **Analytics Dashboard**: `https://www.ebi.ac.uk/pride/services/pride-mcp/analytics/`
+- **API Documentation**: `https://www.ebi.ac.uk/pride/services/pride-mcp/api/docs`
+- **Root Path**: `https://www.ebi.ac.uk/pride/services/pride-mcp/` (redirects to UI)
 
 ## Load Balancer Configuration
 
 The services are integrated with the main EBI load balancer at `www.ebi.ac.uk`. Use the `LOAD_BALANCER_PR_TEMPLATE.md` file to create a pull request for the EBI service team to configure the routing.
+
+### **Consistent Pattern for All Services**
+
+All services follow the same hierarchical pattern:
+
+```
+https://www.ebi.ac.uk/pride/services/
+├── pride-mcp/                    # Current service
+│   ├── ui/                       # Web Interface
+│   ├── mcp/                      # MCP Protocol
+│   ├── api/                      # REST API
+│   └── analytics/                # Analytics Dashboard
+├── pmultiqc/                     # Future service
+│   ├── ui/                       # PMultiQC Interface
+│   ├── service/                  # PMultiQC Service
+│   └── api/                      # PMultiQC API
+└── other-service/                # Any future service
+    ├── ui/                       # Service UI
+    ├── api/                      # Service API
+    └── dashboard/                # Service Dashboard
+```
+
+This ensures **consistency** and **scalability** for all EBI services.
 
 ## Monitoring
 

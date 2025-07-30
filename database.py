@@ -1,5 +1,6 @@
 import sqlite3
 import json
+import os
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 import logging
@@ -7,8 +8,11 @@ import logging
 logger = logging.getLogger(__name__)
 
 class QuestionDatabase:
-    def __init__(self, db_path: str = "pride_questions.db"):
-        self.db_path = db_path
+    def __init__(self, db_path: Optional[str] = None):
+        # Use environment variable if available, otherwise default
+        self.db_path = db_path or os.getenv('DATABASE_PATH', 'pride_questions.db')
+        # Ensure directory exists
+        os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
         self.init_database()
     
     def init_database(self):

@@ -13,45 +13,30 @@ We need to add routing configuration to the EBI load balancer (`www.ebi.ac.uk`) 
 
 ## Required Routes
 
-Please add the following routes to the EBI load balancer configuration:
+Please add the following **SINGLE ROUTE** to the EBI load balancer configuration:
 
-### 1. MCP Server Endpoint
-- **Path:** `/pride/services/mcp`
+### 1. PRIDE Services (Single Entry Point)
+- **Path:** `/pride/services/*`
 - **Backend:** Kubernetes service endpoint (will be provided after deployment)
-- **Port:** 9000
-- **Description:** Model Context Protocol server for PRIDE Archive data access
+- **Port:** 80/443 (Ingress port)
+- **Description:** **ALL** PRIDE services under this path - no additional EBI configuration needed for future services
 
-### 2. Web UI
-- **Path:** `/pride/services/mcp_ui`
-- **Backend:** Kubernetes service endpoint (will be provided after deployment)
-- **Port:** 9090
-- **Description:** Professional web interface for PRIDE MCP Server
+### 2. Service Routing (Handled by Kubernetes Ingress)
+The Kubernetes Ingress will handle all sub-path routing internally:
 
-### 3. Analytics Dashboard
-- **Path:** `/pride/services/mcp_analysis_ui`
-- **Backend:** Kubernetes service endpoint (will be provided after deployment)
-- **Port:** 8080
-- **Description:** Analytics dashboard for monitoring service usage
+**Current Services:**
+- **PRIDE MCP:** `/pride/services/pride-mcp/*` → MCP services
+- **Web UI:** `/pride/services/pride-mcp/ui/*` → UI service
+- **API:** `/pride/services/pride-mcp/api/*` → API service
+- **Analytics:** `/pride/services/pride-mcp/analytics/*` → Analytics service
 
-### 4. API Endpoints
-- **Path:** `/pride/services/mcp_api`
-- **Backend:** Kubernetes service endpoint (will be provided after deployment)
-- **Port:** 9000
-- **Description:** REST API endpoints for analytics and system management
+**Future Services (No EBI PR needed):**
+- **PMultiQC:** `/pride/services/pmultiqc/*` → PMultiQC services
+- **Other Services:** `/pride/services/service-name/*` → Any future service
 
-## Future Services (To be added later)
+## Key Benefit
 
-### 5. PMultiQC Service
-- **Path:** `/pride/services/pmultiqc`
-- **Backend:** TBD
-- **Port:** TBD
-- **Description:** PMultiQC service for proteomics data analysis
-
-### 6. PMultiQC UI
-- **Path:** `/pride/services/pmultiqc_ui`
-- **Backend:** TBD
-- **Port:** TBD
-- **Description:** PMultiQC web interface
+**Only ONE EBI load balancer configuration needed** - all future services will be handled by the Kubernetes Ingress without requiring additional EBI team involvement.
 
 ## Technical Requirements
 
@@ -91,10 +76,12 @@ The actual backend endpoints will be provided after the Kubernetes deployment is
 ## Testing
 
 ### Health Check Endpoints
-- **MCP Server:** `/pride/services/mcp/` (should return 200 OK)
-- **Web UI:** `/pride/services/mcp_ui/` (should serve HTML)
-- **API:** `/pride/services/mcp_api/health` (should return JSON health status)
-- **Analytics:** `/pride/services/mcp_analysis_ui/` (should serve analytics dashboard)
+- **Main Entry:** `/pride/services/` (should be accessible)
+- **PRIDE MCP Root:** `/pride/services/pride-mcp/` (should redirect to UI)
+- **Web UI:** `/pride/services/pride-mcp/ui/` (should serve HTML)
+- **MCP Server:** `/pride/services/pride-mcp/mcp/` (should return 200 OK)
+- **API:** `/pride/services/pride-mcp/api/health` (should return JSON health status)
+- **Analytics:** `/pride/services/pride-mcp/analytics/` (should serve analytics dashboard)
 
 ### Expected Behavior
 - All routes should return appropriate HTTP status codes

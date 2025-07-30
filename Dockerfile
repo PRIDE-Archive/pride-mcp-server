@@ -21,6 +21,9 @@ RUN uv sync --frozen
 # Copy application code
 COPY . .
 
+# Create data directory for persistent storage
+RUN mkdir -p /app/data
+
 # Create non-root user
 RUN useradd --create-home --shell /bin/bash app && \
     chown -R app:app /app
