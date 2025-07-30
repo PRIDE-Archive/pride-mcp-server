@@ -150,7 +150,6 @@ spec:
     - protocol: TCP
       port: 9000
       targetPort: 9000
-      nodePort: 30090
       name: api
   type: NodePort
 ---
@@ -168,7 +167,6 @@ spec:
     - protocol: TCP
       port: 9001
       targetPort: 9001
-      nodePort: 30091
       name: mcp
   type: NodePort
 ---
@@ -186,7 +184,6 @@ spec:
     - protocol: TCP
       port: 9090
       targetPort: 9090
-      nodePort: 30092
       name: ui
   type: NodePort
 ---
@@ -204,7 +201,6 @@ spec:
     - protocol: TCP
       port: 8080
       targetPort: 8080
-      nodePort: 30093
       name: analytics
   type: NodePort
  
