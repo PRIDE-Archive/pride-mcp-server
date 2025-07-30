@@ -1,346 +1,243 @@
-# 🧬 MCP PRIDE Archive Search Server with Gemini Pro Integration
+# PRIDE MCP Server
 
-This project implements a **Model Context Protocol (MCP)**-compliant API server that exposes tools to search the [PRIDE Archive](https://www.ebi.ac.uk/pride/), a major repository for proteomics data. It allows AI models (such as Claude, Gemini, or other MCP-compatible LLMs) to interact with proteomics datasets programmatically using structured function calling, with enhanced AI-powered analysis capabilities.
+A Model Context Protocol (MCP) server for accessing PRIDE Archive proteomics data.
 
----
+## Overview
 
-## 🚀 Features
+This MCP server provides tools for searching and retrieving proteomics data from the PRIDE Archive database. It implements the Model Context Protocol to enable AI assistants to access proteomics data programmatically. The system uses an intelligent search approach that always calls facets first to determine optimal filters, then performs enhanced searches with those filters for more precise results. It automatically retrieves detailed project information and presents results in a clean, professional format with direct links to EBI project pages.
 
-- ✅ MCP Server powered by `FastMCP`
-- 🔍 PRIDE Archive Search Tool to query datasets by keyword, submission date, popularity, etc.
-- 🤖 **Gemini Pro AI Integration** for enhanced data analysis and insights
-- 🧠 AI-powered proteomics data analysis and research suggestions
-- 🤖 AI-friendly tools for biomedical and proteomics-related research
-- ⚡ Supports both `http` (SSE) and `stdio` connection modes
-- 🛠️ Easily extendable with additional tools
+## Features
 
----
+- **PRIDE Archive Integration**: Direct access to PRIDE EBI proteomics database
+- **Intelligent Search**: AI-powered natural language search with automatic project details retrieval
+- **Facets-Enhanced Search**: Always calls facets first to determine optimal filters for more precise searches
+- **Clean Response Format**: Professional, research-oriented responses with direct links to EBI project pages
+- **Advanced Filtering**: Automatic filter selection based on user keywords and available facets
+- **Project Details**: Retrieve detailed information about proteomics projects
+- **File Access**: Get file information and download links
+- **MCP Protocol**: Standard Model Context Protocol implementation
 
-## 📦 Installation & Setup
+## Quick Start
 
-### 1. Clone the Repository
+### Prerequisites
+
+- Python 3.8+
+- uv (recommended) or pip
+
+### Installation
+
 ```bash
+# Clone the repository
 git clone <repository-url>
 cd pride-mcp-server
-```
 
-### 2. Install Dependencies
-```bash
-# Install uv if not already installed
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Install project dependencies
+# Install dependencies
 uv sync
+
+# Start both MCP server and AI conversational UI
+uv run python start_services.py
+
+# Alternative: Use the convenience script
+./start.sh
 ```
 
-### 3. Set Environment Variables
+The services will start on:
+- MCP Server: http://127.0.0.1:9000
+- AI Conversational UI: http://127.0.0.1:9090
+
+## MCP Server Integration
+
+The PRIDE Archive MCP Server can be integrated with various AI tools like Claude Desktop, ChatGPT, Cursor IDE, and more.
+
+### Quick Help
 ```bash
-# Set your Gemini API key
-export GEMINI_API_KEY="your_gemini_api_key_here"
-export GEMINI_MODEL="gemini-2.0-flash-exp"
+uv run python help_command.py
 ```
 
-### 4. Start the Servers
+### Integration Guides
+- **Claude Desktop:** `uv run python help_command.py integration claude`
+- **Cursor IDE:** `uv run python help_command.py integration cursor`
+- **ChatGPT:** `uv run python help_command.py integration chatgpt`
 
-#### Option A: MCP Server Only (for Cursor)
+### Tool Documentation
 ```bash
-# Start the MCP server on port 9000
-uv run python main.py --host 127.0.0.1 --port 9000
+uv run python help_command.py tool <tool_name>
 ```
 
-#### Option B: MCP Server + Web UI (for both Cursor and browser)
+### Configuration Files
+All integration configurations are available in the `help/` directory:
+- `help/README.md` - Complete integration guide
+- `help/claude_desktop_config.json` - Claude Desktop configuration
+- `help/cursor_config.json` - Cursor IDE configuration
+- `help/chatgpt_config.json` - ChatGPT configuration
+- `help/vscode_config.json` - VS Code configuration
+- `help/custom_config.json` - Generic configuration
+
+## Available Tools
+
+### get_pride_facets
+Retrieves available filter values from PRIDE Archive.
+
+**Parameters:**
+- `facet_page_size` (optional): Number of facet values per page (default: 100)
+- `facet_page` (optional): Page number for pagination (default: 0)
+
+### fetch_projects
+Searches for proteomics projects in PRIDE Archive.
+
+**Parameters:**
+- `keyword` (required): Search keyword
+- `filters` (optional): Comma-separated filters using exact values from facets
+- `page_size` (optional): Results per page (default: 25)
+- `page` (optional): Page number (default: 0)
+- `sort_direction` (optional): ASC or DESC (default: DESC)
+- `sort_fields` (optional): Fields to sort by (default: downloadCount)
+
+### get_project_details
+Gets detailed information about a specific PRIDE project.
+
+**Parameters:**
+- `project_accession` (required): PRIDE project accession (e.g., PXD000001)
+
+### get_project_files
+Gets file information for a specific PRIDE project.
+
+**Parameters:**
+- `project_accession` (required): PRIDE project accession
+- `file_type` (optional): Filter for specific file types
+
+### analyze_with_ai
+Analyzes proteomics data using AI services.
+
+**Parameters:**
+- `data` (required): Data to analyze (JSON string or text)
+- `analysis_type` (optional): Type of analysis (default: general)
+- `context` (optional): Additional context
+
+## Usage Examples
+
+### Using with MCP Client
+
+```python
+from mcp_client_tools import MCPClient
+
+# Connect to the server
+client = MCPClient("http://127.0.0.1:9000")
+
+# Get available facets
+facets = client.call_tool("get_pride_facets", {})
+
+# Search for projects
+projects = client.call_tool("fetch_projects", {
+    "keyword": "cancer",
+    "filters": "organisms==Homo sapiens (human),diseases==Breast cancer"
+})
+```
+
+### Using with AI Assistants
+
+The server can be integrated with AI assistants that support the MCP protocol:
+
 ```bash
-# Start both MCP server (port 9000) and web UI (port 8080)
-./start_with_ui.sh
+# Example with Claude Desktop
+claude --mcp-server pride-mcp-server
 ```
 
-#### Option C: Manual Start (if script doesn't work)
+## Configuration
+
+### Environment Variables
+
+- `MCP_SERVER_PORT`: Port for the MCP server (default: 9000)
+- `PRIDE_API_BASE_URL`: PRIDE Archive API base URL (default: https://www.ebi.ac.uk/pride/ws/archive/v3)
+
+### Settings
+
+Configuration is managed through `config/settings.py`. Key settings include:
+
+- API endpoints and timeouts
+- Logging configuration
+- Server settings
+
+## Project Structure
+
+```
+pride-mcp-server/
+├── config/
+│   ├── __init__.py
+│   └── settings.py          # Configuration settings
+├── servers/
+│   ├── __init__.py
+│   └── pride_mcp_server.py  # Main MCP server implementation
+├── tools/
+│   ├── __init__.py
+│   └── pride_archive_public_api.py  # PRIDE API integration
+├── utils/
+│   ├── __init__.py
+│   └── logging.py           # Logging utilities
+├── main.py                  # Server entry point
+├── server.py               # Simple server runner
+├── pyproject.toml          # Project configuration
+└── README.md               # This file
+```
+
+## Development
+
+### Setup Development Environment
+
 ```bash
-# Terminal 1: Start MCP server
-export GEMINI_API_KEY="your_gemini_api_key_here"
-export GEMINI_MODEL="gemini-2.0-flash-exp"
-uv run python main.py --host 127.0.0.1 --port 9000
+# Install in development mode
+uv sync --dev
 
-# Terminal 2: Start web UI
-uv run python ui_test_server.py --host 127.0.0.1 --port 8080
+# Run tests
+uv run pytest
+
+# Format code
+uv run black .
+uv run isort .
 ```
 
-The servers should start with output like:
-```
-🚀 Starting PRIDE MCP Server with Gemini Pro integration...
-✅ Gemini Pro integration enabled
-INFO:     Uvicorn running on http://127.0.0.1:9000
-
-# And for web UI:
-INFO:     Uvicorn running on http://127.0.0.1:8080
-```
-
-## 🔧 Configure Cursor MCP
-
-### 1. URL-based Configuration
-If you prefer URL-based configuration:
-
-```json
-{
-  "mcpServers": {
-    "pride-mcp-server": {
-      "url": "http://127.0.0.1:9000/mcp"
-    }
-  }
-}
-```
-
-### 2. Restart Cursor
-After editing the MCP configuration, restart Cursor to load the new settings.
-
-## ✅ Verify Setup
-
-### Check MCP Server Status
-The MCP indicator in Cursor should turn **green** when properly connected.
-
-### Test Connection
-In Cursor chat, try asking:
-```
-What tools are available in the PRIDE MCP server?
-```
-
-You should see the available tools listed.
-
-### Access Web UI (if started)
-If you started the web UI, open your browser and go to:
-```
-http://127.0.0.1:8080
-```
-
-You can test queries directly in the web interface and compare results with Cursor.
-
-## 🧬 Available Tools
-
-The PRIDE MCP server provides these tools:
-
-### 1. `get_pride_facets`
-- **Purpose**: Get available filter values from PRIDE Archive
-- **Use**: Always call this first before searching
-- **Parameters**: `facet_page_size`, `facet_page`
-
-### 2. `fetch_projects`
-- **Purpose**: Search for proteomics projects
-- **Use**: Main search function with filters
-- **Parameters**: `keyword`, `filters`, `page_size`, `page`, `sort_direction`, `sort_fields`
-
-### 3. `get_project_details`
-- **Purpose**: Get detailed information about a specific project
-- **Use**: After finding project accessions
-- **Parameters**: `project_accession`
-
-### 4. `get_project_files`
-- **Purpose**: Get file information for a project
-- **Use**: To see available data files
-- **Parameters**: `project_accession`, `file_type`
-
-## 🔍 Example Queries
-
-### Basic Search
-```
-Search for human breast cancer proteomics studies
-```
-
-### Advanced Search with Filters
-```
-Find mouse proteomics studies using SWATH MS on cancer samples
-```
-
-### Date-Range Search
-```
-Search for Alzheimer's disease datasets with TMT quantification published between 2023 and 2025
-```
-
-### Specific Technology Search
-```
-Find yeast proteomics studies using MaxQuant
-```
-
-### Compare Cursor vs Web UI
-Try the same query in both Cursor chat and the web UI to compare:
-- **Cursor**: Direct MCP tool calls with detailed responses
-- **Web UI**: Gemini Pro orchestration with natural language responses
-
-## 📊 Filter Examples
-
-### Organisms
-- `organisms==Homo sapiens (human)`
-- `organisms==Mus musculus (mouse)`
-- `organisms==Saccharomyces cerevisiae (baker's yeast)`
-
-### Experiment Types
-- `experimentTypes==SWATH MS`
-- `experimentTypes==Shotgun proteomics`
-- `experimentTypes==Data-independent acquisition`
-
-### Diseases
-- `diseases==Alzheimer's disease`
-- `diseases==Breast cancer`
-- `diseases==Lung cancer`
-
-### Quantification Methods
-- `quantificationMethods==TMT`
-- `quantificationMethods==SILAC`
-- `quantificationMethods==iTRAQ`
-
-### Software
-- `softwares==MaxQuant`
-- `softwares==Mascot`
-- `softwares==Proteome Discoverer`
-
-### Date Filtering
-For date ranges, call `fetch_projects` multiple times:
-- `submissionDate==2023`
-- `submissionDate==2024`
-- `submissionDate==2025`
-
-## 🎯 Best Practices
-
-### 1. Always Start with Facets
-```bash
-# First, get available filter values
-get_pride_facets
-```
-
-### 2. Use Specific Keywords
-- ✅ Good: `cancer`, `alzheimer`, `proteomics`
-- ❌ Avoid: `studies`, `data`, `research`
-
-### 3. Combine Filters Effectively
-```bash
-# Example: Mouse + SWATH MS + Cancer
-filters="organisms==Mus musculus (mouse),experimentTypes==SWATH MS"
-keyword="cancer"
-```
-
-### 4. Date Range Queries
-For "2023-2025", make separate calls:
-1. `submissionDate==2023`
-2. `submissionDate==2024`
-3. `submissionDate==2025`
-
-
-##  🤝 Integration with LLMs
-
-This server works with any LLM that supports Model Context Protocol, including:
-
-- Anthropic Claude
-- Google Gemini
-- Open-source MCP clients 
-- Custom RAG pipelines
-
-### Enhanced AI Capabilities
-
-With Gemini Pro integration, the server provides:
-- **AI-powered data analysis** of proteomics datasets
-- **Research suggestions** based on project metadata
-- **Biological insights** from experimental data
-- **Enhanced search result interpretation**
-
-## 🚨 Troubleshooting
-
-### MCP Indicator is Red/Yellow
-1. **Check server is running**: `curl http://127.0.0.1:9000/health`
-2. **Verify MCP config**: Check `~/.cursor/mcp.json` syntax
-3. **Restart Cursor**: After config changes
-4. **Check logs**: Look for error messages in terminal
-
-### Web UI Not Loading
-1. **Check if UI server is running**: `curl http://127.0.0.1:8080`
-2. **Verify port 8080 is free**: `lsof -i :8080`
-3. **Check UI server logs**: Look for error messages in the UI terminal
-4. **Try manual start**: Use Option C above to start UI separately
-
-### No Results Found
-1. **Check facets first**: Use `get_pride_facets` to see available values
-2. **Verify filter syntax**: Use exact values from facets
-3. **Try broader search**: Remove some filters to get more results
-4. **Check keyword**: Use specific, relevant keywords
-
-### Server Won't Start
-1. **Check dependencies**: `uv sync`
-2. **Verify API key**: `echo $GEMINI_API_KEY`
-3. **Check port availability**: Ensure port 9000 is free
-4. **Check Python version**: Ensure Python 3.8+ is installed
-
-## 🌐 Web UI
-
-A modern web interface is included for easy testing and interaction:
-
-- **Beautiful, responsive design** with Tailwind CSS
-- **Real-time tool testing** with live results
-- **Gemini Pro integration** with AI analysis features
-- **Interactive forms** for all MCP tools
-- **Status indicators** for server and AI service health
-
-### Web UI Features
-- Search PRIDE projects with filters
-- Get detailed project information
-- AI-powered data analysis with Gemini Pro
-- Real-time results display
-- Example data loading
-- Error handling and status feedback
-
-## 🧠 Architecture Overview
-
-```sql
-+---------------------+       Tool Calls        +-----------------------------+
-|  Claude / Gemini AI |  <--------------------> | MCP PRIDE API Server        |
-+---------------------+                         | - search_archive_tool()     |
-                                                | - server_status()           |
-                                                +-----------------------------+
-                                                           |
-                                                           v
-                                              +---------------------------+
-                                              | PRIDE Archive REST API    |
-                                              | (https://www.ebi.ac.uk    |
-                                              |   /pride/ws/archive/      |
-                                              |  v3/search/projects)      |
-                                              +---------------------------+
-```
-
-## 📝 Example Workflow
-
-### Complete Search Example
-```
-User: "Find human breast cancer proteomics studies from 2023"
-
-Assistant: Let me help you find human breast cancer proteomics studies from 2023.
-
-First, let me get the available filter values:
-[Call get_pride_facets]
-
-Now, let me search for the studies:
-[Call fetch_projects with filters="organisms==Homo sapiens (human),organismsPart==Breast,submissionDate==2023" and keyword="cancer"]
-
-I found X projects. Let me get details for the top result:
-[Call get_project_details with project_accession]
-
-Here are the results...
-```
-
-## 🔗 Useful Links
-
-- **PRIDE Archive**: https://www.ebi.ac.uk/pride/
-- **MCP Documentation**: https://modelcontextprotocol.io/
-- **Cursor Documentation**: https://cursor.sh/docs
-
-## 📞 Support
-
-If you encounter issues:
-1. Check the troubleshooting section above
-2. Verify your Gemini API key is valid
-3. Ensure all dependencies are installed
-4. Check the server logs for error messages
-
----
-
-**Happy Proteomics Data Exploration! 🧬🔬**
-
-## 📝 License
-
-MIT License. See LICENSE for details.
+### Adding New Tools
+
+1. Define the tool in `servers/pride_mcp_server.py`
+2. Implement the tool logic in `tools/pride_archive_public_api.py`
+3. Update the tool schema and documentation
+
+## API Reference
+
+### PRIDE Archive API
+
+The server integrates with the PRIDE Archive REST API:
+
+- **Base URL**: https://www.ebi.ac.uk/pride/ws/archive/v3
+- **Documentation**: https://www.ebi.ac.uk/pride/ws/archive/v3/docs
+
+### MCP Protocol
+
+The server implements the Model Context Protocol:
+
+- **Specification**: https://modelcontextprotocol.io/
+- **Tools**: JSON-RPC 2.0 over HTTP
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests
+5. Submit a pull request
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Acknowledgments
+
+- PRIDE Archive team for providing the proteomics data and API
+- MCP community for the protocol specification
+- Contributors and maintainers
+
+## Support
+
+- Documentation: [GitHub Wiki](https://github.com/yourusername/pride-mcp-server/wiki)
+- Issues: [GitHub Issues](https://github.com/yourusername/pride-mcp-server/issues)
+- Discussions: [GitHub Discussions](https://github.com/yourusername/pride-mcp-server/discussions)

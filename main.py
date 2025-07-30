@@ -5,18 +5,18 @@ from config.settings import settings
 
 if __name__ == "__main__":
     # Use argparse to get host and port from command line arguments
-    parser = argparse.ArgumentParser(description="Run MCP server with FastAPI")
+    parser = argparse.ArgumentParser(description="Run MCP server with AI integration")
     parser.add_argument("--host", type=str, default=settings.HOST, help="Host IP address")
     parser.add_argument("--port", type=int, default=settings.PORT, help="Port number")
     args = parser.parse_args()
 
-    # Validate Gemini configuration
-    print("🚀 Starting PRIDE MCP Server with Gemini Pro integration...")
-    settings.validate_gemini_config()
+    # Validate AI configuration
+    print("🚀 Starting PRIDE MCP Server with AI integration...")
+    ai_config = settings.validate_ai_config()
     
-    if settings.ENABLE_GEMINI and settings.GEMINI_API_KEY:
-        print("✅ Gemini Pro integration enabled")
+    if ai_config["enabled"] and ai_config["valid"]:
+        print(f"✅ {ai_config['message']}")
     else:
-        print("⚠️  Gemini Pro integration disabled - set GEMINI_API_KEY to enable")
+        print(f"⚠️  AI integration disabled - {ai_config['message']}")
 
     uvicorn.run(app, host=args.host, port=args.port, log_level="info")

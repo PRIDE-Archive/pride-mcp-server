@@ -1,0 +1,9 @@
+{
+  "mcp.servers": {
+    "pride-archive": {
+      "url": "http://localhost:9000",
+      "name": "PRIDE Archive MCP Server",
+      "description": "Access proteomics data from PRIDE Archive"
+    }
+  }
+}

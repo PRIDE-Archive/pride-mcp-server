@@ -168,11 +168,6 @@ Try the same query in both Cursor chat and the web UI to compare:
 - `diseases==Breast cancer`
 - `diseases==Lung cancer`
 
-### Quantification Methods
-- `quantificationMethods==TMT`
-- `quantificationMethods==SILAC`
-- `quantificationMethods==iTRAQ`
-
 ### Software
 - `softwares==MaxQuant`
 - `softwares==Mascot`

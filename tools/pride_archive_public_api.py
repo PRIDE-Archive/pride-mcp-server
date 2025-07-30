@@ -7,38 +7,14 @@ from typing import Dict, Any, List
 mcp = FastMCP(name="pride_mcp_server", stateless_http=True)
 
 @mcp.tool()
-async def get_pride_facets(facet_page_size: int = 100, facet_page: int = 0):
+async def get_pride_facets(facet_page_size: int = 100, facet_page: int = 0, keyword: str = None):
     """
-    CRITICAL FIRST STEP: Fetch available filter values from the PRIDE Archive facet endpoint.
-    
-    ALWAYS CALL THIS TOOL FIRST before searching for projects. This tool provides the exact filter values that can be used in searches.
-    
-    WORKFLOW:
-    1. Call this tool first to discover available filters
-    2. Use the returned facet data to construct precise filters
-    3. Call fetch_projects with the exact filter values found here
-    
-    Available facet categories include:
-    - organisms: Species names (e.g., "Homo sapiens (human)", "Mus musculus (mouse)", "Saccharomyces cerevisiae (baker's yeast)")
-    - organismsPart: Specific tissues/organs (e.g., "Breast", "Brain", "Liver", "Heart")
-    - experimentTypes: Experimental methods (e.g., "Shotgun proteomics", "SWATH MS", "DIA")
-    - instruments: Mass spectrometry instruments (e.g., "Q Exactive", "Orbitrap")
-    - keywords: Research keywords (e.g., "Cancer", "Phosphorylation", "TMT")
-    - diseases: Specific diseases (e.g., "Breast cancer", "Alzheimer's disease")
-    - quantificationMethods: Quantification techniques (e.g., "TMT", "SILAC", "iTRAQ")
-    - softwares: Analysis software (e.g., "MaxQuant", "Mascot", "Proteome Discoverer")
-    - submissionDate: Submission years (e.g., "2023", "2024", "2025") - When the data was submitted to PRIDE
-    - publicationDate: Publication years (e.g., "2023", "2024", "2025") - When the study was published
-    
-    EXAMPLES OF USE:
-    - When user asks for "human breast cancer studies" → Call this first to find exact organism and tissue names
-    - When user asks for "mouse SWATH MS data" → Call this first to find exact organism and experiment type names
-    - When user asks for "yeast MaxQuant studies" → Call this first to find exact organism and software names
-    - When user asks for "studies from 2023-2025" → Call this first to find exact submissionDate and publicationDate values
+    Fetch available filter values from the PRIDE Archive facet endpoint.
     
     Args:
         facet_page_size: Number of facet values to retrieve per page (default: 100)
         facet_page: Page number for pagination (default: 0)
+        keyword: Optional keyword to filter facets (default: None)
         
     Returns:
         Dictionary containing all available filter values organized by category.
@@ -49,8 +25,12 @@ async def get_pride_facets(facet_page_size: int = 100, facet_page: int = 0):
         "facetPage": facet_page
     }
     
+    # Add keyword filter if provided
+    if keyword:
+        params["keyword"] = keyword
+    
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.get(url, params=params)
             
             if response.status_code == 200:
@@ -136,40 +116,6 @@ async def fetch_projects(
     """
     Search for proteomics projects in the PRIDE Archive database.
 
-    CRITICAL: You MUST call get_pride_facets first to discover available filter values before using this tool.
-    
-    SEARCH STRATEGY:
-    1. Extract key terms from user query (organisms, tissues, technologies, software)
-    2. Call get_pride_facets to find exact filter values
-    3. Construct filters using exact values from facets
-    4. Use relevant keywords for the search
-    
-    FILTER CONSTRUCTION RULES:
-    - Use exact values from get_pride_facets response
-    - Format: "field==value" (e.g., "organisms==Homo sapiens (human)")
-    - Multiple filters: comma-separated (e.g., "organisms==Homo sapiens (human),organismsPart==Breast")
-    - Common organisms: "Homo sapiens (human)", "Mus musculus (mouse)", "Saccharomyces cerevisiae (baker's yeast)"
-    - Common tissues: "Breast", "Brain", "Liver", "Heart"
-    - Common experiment types: "Shotgun proteomics", "SWATH MS", "DIA"
-    - Common software: "MaxQuant", "Mascot", "Proteome Discoverer"
-    - Date filtering: 
-      * Single year: "submissionDate==2023" or "publicationDate==2024"
-      * Multiple years: Call fetch_projects multiple times (once per year) and combine results
-      * Example: For "2023-2025", call 3 times with filters="submissionDate==2023", "submissionDate==2024", "submissionDate==2025"
-    
-    EXAMPLES:
-    - "Find human breast cancer studies" → filters="organisms==Homo sapiens (human),organismsPart==Breast", keyword="cancer"
-    - "Search for mouse SWATH MS data" → filters="organisms==Mus musculus (mouse),experimentTypes==SWATH MS", keyword="proteomics"
-    - "Find yeast MaxQuant studies" → filters="organisms==Saccharomyces cerevisiae (baker's yeast),softwares==MaxQuant", keyword="proteomics"
-    - "Alzheimer studies from 2023" → filters="diseases==Alzheimer's disease,submissionDate==2023", keyword="alzheimer"
-    - "Published Alzheimer studies 2024" → filters="diseases==Alzheimer's disease,publicationDate==2024", keyword="alzheimer"
-    - "Alzheimer studies 2023-2025" → Call fetch_projects 3 times with filters="diseases==Alzheimer's disease,submissionDate==2023", "diseases==Alzheimer's disease,submissionDate==2024", "diseases==Alzheimer's disease,submissionDate==2025"
-    
-    KEYWORD SELECTION:
-    - Use specific disease names: "cancer", "diabetes", "alzheimer"
-    - Use technology terms: "proteomics", "phosphorylation", "TMT"
-    - Avoid generic terms like "studies", "data", "research"
-
     Args:
         keyword: The keyword for searching projects (e.g., 'cancer', 'proteomics', 'phosphorylation').
         page_size: The number of results per page (default: 25).
@@ -198,7 +144,7 @@ async def fetch_projects(
         params["filter"] = filters
     
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.get(url, params=params)
             
             if response.status_code == 200:
@@ -209,10 +155,18 @@ async def fetch_projects(
                 else:
                     project_accessions = []
                 
+                # Extract total_records from response headers
+                total_records = response.headers.get("total_records", len(project_accessions))
+                try:
+                    total_records = int(total_records)
+                except (ValueError, TypeError):
+                    total_records = len(project_accessions)
+                
                 result = {
-                    "reasoning": f"Successfully found {len(project_accessions)} projects matching '{keyword}'.",
+                    "reasoning": f"Successfully found {total_records} total projects matching '{keyword}' (showing {len(project_accessions)} on this page).",
                     "highlights": {
-                        "total_projects": len(project_accessions),
+                        "total_projects": total_records,
+                        "projects_on_page": len(project_accessions),
                         "keyword": keyword,
                         "filters_applied": filters if filters else "None",
                         "page": page,
@@ -278,7 +232,7 @@ async def get_project_details(project_accession: str):
     """
     url = f"https://www.ebi.ac.uk/pride/ws/archive/v3/projects/{project_accession}"
     
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=10.0) as client:
         response = await client.get(url)
         if response.status_code == 200:
             data = response.json()
@@ -341,7 +295,7 @@ async def get_project_files(project_accession: str, file_type: str = None):
     if file_type:
         params["fileType"] = file_type
     
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=10.0) as client:
         response = await client.get(url, params=params)
         if response.status_code == 200:
             data = response.json()

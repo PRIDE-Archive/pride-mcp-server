@@ -1,0 +1,11 @@
+{
+  "server_url": "http://localhost:9000",
+  "server_name": "PRIDE Archive MCP Server",
+  "description": "Access proteomics data from PRIDE Archive",
+  "tools": [
+    "get_pride_facets",
+    "fetch_projects",
+    "get_project_details",
+    "get_project_files"
+  ]
+}
