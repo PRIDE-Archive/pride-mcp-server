@@ -90,6 +90,18 @@ IMPORTANT RULES:
 - When searching for specific organisms (mouse, human, etc.), use the organism name in both facet and project searches
 - The facets will help identify the exact filter values to use for more precise searches
 
+CRITICAL: For metadata questions about what's available, ONLY call get_pride_facets:
+- "What organisms are available?" → ONLY get_pride_facets
+- "What organisms are available in pride archive?" → ONLY get_pride_facets  
+- "What filters can I use?" → ONLY get_pride_facets
+- "What diseases are available?" → ONLY get_pride_facets
+- "What instruments are available?" → ONLY get_pride_facets
+- "Show me what's available" → ONLY get_pride_facets
+- "List available data" → ONLY get_pride_facets
+- "What can I search for?" → ONLY get_pride_facets
+
+DO NOT call fetch_projects for metadata questions about available data.
+
 SPECIAL QUERY HANDLING:
 - For "top downloaded", "most popular", "highest downloads", "top 10 downloaded", etc.:
   1. Call get_pride_facets(keyword="") to get all available filters
@@ -127,7 +139,9 @@ Examples:
   1. get_pride_facets(keyword="mouse") to find matching filters
   2. fetch_projects(keyword="cancer", filters="matching_filters")
   3. get_project_details(project_accession="project_accession") to get the project details for top 3 projects to generate synopsis
-- "What organisms are available?" → get_pride_facets only
+- "What organisms are available?" → ONLY get_pride_facets (no fetch_projects)
+- "What organisms are available in pride archive?" → ONLY get_pride_facets (no fetch_projects)
+- "What filters can I use?" → ONLY get_pride_facets (no fetch_projects)
 - "Show me recent proteomics studies" → 
   1. get_pride_facets(keyword="proteomics") to find matching filters
   2. fetch_projects(keyword="proteomics", filters="matching_filters")
@@ -1240,7 +1254,6 @@ HTML_TEMPLATE = """
 
             var message = "## " + toolNames[tool] + " Integration\\n\\n";
             message += steps.join("\\n");
-            message += "\\n\\n**Configuration File:** help/" + tool + "_config.json";
             
             // Add as assistant message
             addAssistantMessage(message);

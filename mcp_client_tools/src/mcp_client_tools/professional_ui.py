@@ -993,9 +993,6 @@ PROFESSIONAL_HTML_TEMPLATE = """
 `;
             message += steps.join(`
 `);
-            message += `
-
-**Configuration File:** help/${tool}_config.json`;
             
             // Add as assistant message
             addAssistantMessage(message);
@@ -1194,23 +1191,40 @@ async def handle_user_message(websocket: WebSocket, user_message: str):
         # Check if AI service is available
         if ai_service is None:
             logger.warning("AI service not available, using fallback")
-            ai_analysis = {
-                "intent": "search_projects",
-                "tools_to_call": [
-                    {
-                        "tool_name": "get_pride_facets",
-                        "parameters": {}
-                    },
-                    {
-                        "tool_name": "fetch_projects",
-                        "parameters": {
-                            "keyword": user_message,
-                            "page_size": 25,
-                            "page": 0
+            # Smart fallback: determine if we need to search projects or just get facets
+            user_message_lower = user_message.lower()
+            if any(keyword in user_message_lower for keyword in ["organism", "available", "filter", "facet", "what can", "what are", "list", "show me what"]):
+                # Questions about available data - only get facets
+                ai_analysis = {
+                    "intent": "get_available_data",
+                    "tools_to_call": [
+                        {
+                            "tool_name": "get_pride_facets",
+                            "parameters": {}
                         }
-                    }
-                ]
-            }
+                    ]
+                }
+            else:
+                # Search questions - get facets and projects
+                ai_analysis = {
+                    "intent": "search_projects",
+                    "tools_to_call": [
+                        {
+                            "tool_name": "get_pride_facets",
+                            "parameters": {
+                                "keyword": user_message
+                            }
+                        },
+                        {
+                            "tool_name": "fetch_projects",
+                            "parameters": {
+                                "keyword": user_message,
+                                "page_size": 25,
+                                "page": 0
+                            }
+                        }
+                    ]
+                }
             await websocket.send_text(json.dumps({
                 "type": "progress",
                 "step": "AI Analysis",
@@ -1225,26 +1239,40 @@ async def handle_user_message(websocket: WebSocket, user_message: str):
                 )
             except asyncio.TimeoutError:
                 logger.error("AI analysis timed out, using fallback")
-                # Fallback: Use simple keyword-based analysis
-                ai_analysis = {
-                    "intent": "search_projects",
-                    "tools_to_call": [
-                        {
-                            "tool_name": "get_pride_facets",
-                            "parameters": {
-                                "keyword": user_message
+                # Smart fallback: determine if we need to search projects or just get facets
+                user_message_lower = user_message.lower()
+                if any(keyword in user_message_lower for keyword in ["organism", "available", "filter", "facet", "what can", "what are", "list", "show me what"]):
+                    # Questions about available data - only get facets
+                    ai_analysis = {
+                        "intent": "get_available_data",
+                        "tools_to_call": [
+                            {
+                                "tool_name": "get_pride_facets",
+                                "parameters": {}
                             }
-                        },
-                        {
-                            "tool_name": "fetch_projects",
-                            "parameters": {
-                                "keyword": user_message,
-                                "page_size": 25,
-                                "page": 0
+                        ]
+                    }
+                else:
+                    # Search questions - get facets and projects
+                    ai_analysis = {
+                        "intent": "search_projects",
+                        "tools_to_call": [
+                            {
+                                "tool_name": "get_pride_facets",
+                                "parameters": {
+                                    "keyword": user_message
+                                }
+                            },
+                            {
+                                "tool_name": "fetch_projects",
+                                "parameters": {
+                                    "keyword": user_message,
+                                    "page_size": 25,
+                                    "page": 0
+                                }
                             }
-                        }
-                    ]
-                }
+                        ]
+                    }
                 await websocket.send_text(json.dumps({
                     "type": "progress",
                     "step": "AI Analysis",
@@ -1252,26 +1280,40 @@ async def handle_user_message(websocket: WebSocket, user_message: str):
                 }))
             except Exception as ai_error:
                 logger.error(f"AI analysis failed: {ai_error}, using fallback")
-                # Fallback: Use simple keyword-based analysis
-                ai_analysis = {
-                    "intent": "search_projects",
-                    "tools_to_call": [
-                        {
-                            "tool_name": "get_pride_facets",
-                            "parameters": {
-                                "keyword": user_message
+                # Smart fallback: determine if we need to search projects or just get facets
+                user_message_lower = user_message.lower()
+                if any(keyword in user_message_lower for keyword in ["organism", "available", "filter", "facet", "what can", "what are", "list", "show me what"]):
+                    # Questions about available data - only get facets
+                    ai_analysis = {
+                        "intent": "get_available_data",
+                        "tools_to_call": [
+                            {
+                                "tool_name": "get_pride_facets",
+                                "parameters": {}
                             }
-                        },
-                        {
-                            "tool_name": "fetch_projects",
-                            "parameters": {
-                                "keyword": user_message,
-                                "page_size": 25,
-                                "page": 0
+                        ]
+                    }
+                else:
+                    # Search questions - get facets and projects
+                    ai_analysis = {
+                        "intent": "search_projects",
+                        "tools_to_call": [
+                            {
+                                "tool_name": "get_pride_facets",
+                                "parameters": {
+                                    "keyword": user_message
+                                }
+                            },
+                            {
+                                "tool_name": "fetch_projects",
+                                "parameters": {
+                                    "keyword": user_message,
+                                    "page_size": 25,
+                                    "page": 0
+                                }
                             }
-                        }
-                    ]
-                }
+                        ]
+                    }
                 await websocket.send_text(json.dumps({
                     "type": "progress",
                     "step": "AI Analysis",
