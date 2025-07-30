@@ -55,15 +55,20 @@ async def startup_event():
     except Exception as e:
         logger.error(f"❌ Database initialization failed: {e}")
     
-    # Send startup notification to Slack
-    try:
-        await slack.send_system_status("online", {
-            "server_url": "http://127.0.0.1:9000",
-            "mcp_endpoint": "http://127.0.0.1:9000/mcp/",
-            "api_endpoint": "http://127.0.0.1:9000/api/"
-        })
-    except Exception as e:
-        logger.warning(f"⚠️ Failed to send Slack startup notification: {e}")
+    # Send startup notification to Slack (non-blocking)
+    import asyncio
+    async def send_slack_notification():
+        try:
+            await slack.send_system_status("online", {
+                "server_url": "http://127.0.0.1:9000",
+                "mcp_endpoint": "http://127.0.0.1:9000/mcp/",
+                "api_endpoint": "http://127.0.0.1:9000/api/"
+            })
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to send Slack startup notification: {e}")
+    
+    # Fire and forget - don't wait for Slack notification
+    asyncio.create_task(send_slack_notification())
 
 @app.on_event("shutdown")
 async def shutdown_event():
@@ -91,6 +96,15 @@ async def root():
             "stats": "/api/stats"
         },
         "documentation": "/docs"
+    }
+
+@app.get("/health")
+async def health_check():
+    """Simple health check endpoint."""
+    return {
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat(),
+        "service": "PRIDE MCP Server"
     }
 
 if __name__ == "__main__":
