@@ -87,6 +87,8 @@ spec:
               name: mcp
             - containerPort: 9090
               name: ui
+            - containerPort: 8080
+              name: analytics
           command: ["uv", "run", "python", "server.py"]
           volumeMounts:
             - name: database-storage
@@ -118,10 +120,6 @@ spec:
             limits:
               memory: "512Mi"
               cpu: "500m"
-      volumes:
-        - name: database-storage
-          persistentVolumeClaim:
-            claimName: $app_name-database-pvc
           livenessProbe:
             httpGet:
               path: /mcp/
@@ -146,6 +144,10 @@ spec:
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 30
+      volumes:
+        - name: database-storage
+          persistentVolumeClaim:
+            claimName: $app_name-database-pvc
 ---
 apiVersion: v1
 kind: Service
