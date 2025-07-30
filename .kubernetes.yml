@@ -77,12 +77,14 @@ spec:
           imagePullPolicy: Always
           ports:
             - containerPort: 9000
+              name: api
+            - containerPort: 9001
               name: mcp
             - containerPort: 9090
               name: ui
             - containerPort: 8080
               name: analytics
-          command: ["uv", "run", "python", "start_kubernetes.py"]
+          command: ["uv", "run", "python", "start_services.py"]
           volumeMounts:
             - name: database-storage
               mountPath: /app/data
@@ -91,7 +93,9 @@ spec:
             - name: MCP_SERVER_HOST
               value: "0.0.0.0"
             - name: MCP_SERVER_PORT
-              value: "9000"
+              value: "9001"
+            - name: MCP_SERVER_URL
+              value: "http://127.0.0.1:9001"
             - name: LOG_LEVEL
               value: "INFO"
             - name: GEMINI_API_KEY
@@ -135,7 +139,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: $app_name-mcp-service
+  name: $app_name-api-service
   namespace: $k8s_namespace
   labels:
     app: $app_name
@@ -147,6 +151,24 @@ spec:
       port: 9000
       targetPort: 9000
       nodePort: 30090
+      name: api
+  type: NodePort
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: $app_name-mcp-service
+  namespace: $k8s_namespace
+  labels:
+    app: $app_name
+spec:
+  selector:
+    app: $app_name
+  ports:
+    - protocol: TCP
+      port: 9001
+      targetPort: 9001
+      nodePort: 30091
       name: mcp
   type: NodePort
 ---
@@ -164,7 +186,7 @@ spec:
     - protocol: TCP
       port: 9090
       targetPort: 9090
-      nodePort: 30091
+      nodePort: 30092
       name: ui
   type: NodePort
 ---
@@ -182,7 +204,7 @@ spec:
     - protocol: TCP
       port: 8080
       targetPort: 8080
-      nodePort: 30092
+      nodePort: 30093
       name: analytics
   type: NodePort
 ---
@@ -216,7 +238,7 @@ spec:
           service:
             name: $app_name-mcp-service
             port:
-              number: 9000
+              number: 9001
       # Web UI - routes /pride-mcp/ui/* to UI service  
       - path: /pride-mcp/ui(/|$)(.*)
         pathType: Prefix
@@ -233,12 +255,12 @@ spec:
             name: $app_name-analytics-service
             port:
               number: 8080
-      # API endpoints - routes /pride-mcp/api/* to MCP service (same as MCP)
+      # API endpoints - routes /pride-mcp/api/* to API service
       - path: /pride-mcp/api(/|$)(.*)
         pathType: Prefix
         backend:
           service:
-            name: $app_name-mcp-service
+            name: $app_name-api-service
             port:
               number: 9000
       # Root path - redirects to UI

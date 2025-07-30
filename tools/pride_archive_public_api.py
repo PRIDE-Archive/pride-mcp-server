@@ -344,3 +344,9 @@ async def get_project_files(project_accession: str, file_type: str = None):
             }
             return error_result
 
+
+# Create the streamable HTTP app for FastAPI integration
+def streamable_http_app():
+    """Create a streamable HTTP app for FastAPI integration."""
+    return mcp.streamable_http_app()
+

@@ -11,8 +11,10 @@ class QuestionDatabase:
     def __init__(self, db_path: Optional[str] = None):
         # Use environment variable if available, otherwise default
         self.db_path = db_path or os.getenv('DATABASE_PATH', 'pride_questions.db')
-        # Ensure directory exists
-        os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
+        # Ensure directory exists (only if path has a directory component)
+        db_dir = os.path.dirname(self.db_path)
+        if db_dir:  # Only create directory if path is not empty
+            os.makedirs(db_dir, exist_ok=True)
         self.init_database()
     
     def init_database(self):

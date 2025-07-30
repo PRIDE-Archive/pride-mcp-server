@@ -18,7 +18,7 @@ class MCPClient:
     A client for interacting with a Model Context Protocol (MCP) server.
     This client is designed to call tools exposed by the MCP server.
     """
-    def __init__(self, mcp_server_url: str, timeout: int = 30):
+    def __init__(self, mcp_server_url: str, timeout: int = 60):
         """
         Initializes the MCPClient.
 
@@ -69,7 +69,7 @@ class MCPClient:
                 }
             }
             
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.post(
                     f"{self.mcp_server_url}/mcp/",
                     json=mcp_request,
@@ -83,22 +83,26 @@ class MCPClient:
                 if response.status_code == 200:
                     # Parse SSE response
                     content = response.text
-                    logger.info(f"Raw response: {content}")
+                    logger.info(f"Raw response length: {len(content)} characters")
                     
                     # Extract JSON from SSE stream
                     lines = content.strip().split('\n')
+                    logger.info(f"Found {len(lines)} lines in response")
+                    
                     for line in lines:
                         if line.startswith('data: '):
                             data = line[6:]  # Remove 'data: ' prefix
                             if data.strip():
                                 try:
                                     result = json.loads(data)
-                                    logger.info(f"Parsed result: {result}")
+                                    logger.info(f"Successfully parsed result for tool '{tool_name}'")
                                     return result
-                                except json.JSONDecodeError:
+                                except json.JSONDecodeError as e:
+                                    logger.warning(f"Failed to parse JSON from line: {e}")
                                     continue
                     
-                    return {"message": "No valid JSON found in response"}
+                    logger.error(f"No valid JSON found in response for tool '{tool_name}'")
+                    return {"error": "No valid JSON found in response", "content": content[:200]}
                 else:
                     logger.error(f"HTTP error: {response.status_code} - {response.text}")
                     raise ConnectionError(f"HTTP {response.status_code}: {response.text}")
@@ -160,7 +164,7 @@ class MCPClient:
                 "params": {}
             }
             
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.post(
                     f"{self.mcp_server_url}/mcp/",
                     json=mcp_request,

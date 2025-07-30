@@ -1,4 +1,3 @@
-from tools.pride_archive_public_api import mcp
 from starlette.middleware.cors import CORSMiddleware
 from fastapi import FastAPI
 import uvicorn
@@ -11,18 +10,12 @@ from slack_integration import slack
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Get the Starlette app from the MCP instance
-mcp_app = mcp.streamable_http_app()
-
-# Create a new FastAPI app that includes both MCP and API endpoints
+# Create a new FastAPI app for API endpoints only
 app = FastAPI(
     title="PRIDE MCP Server",
     description="Model Context Protocol server for PRIDE Archive proteomics data with analytics",
     version="2.0.0"
 )
-
-# Include the MCP routes
-app.mount("/mcp", mcp_app)
 
 # Include the API endpoints with custom prefix for EBI integration
 from api_endpoints import api_router

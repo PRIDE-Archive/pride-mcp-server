@@ -1170,6 +1170,9 @@ async def handle_user_message(websocket: WebSocket, user_message: str):
     """Handle user message using AI to intelligently call MCP tools."""
     global mcp_client
     
+    # Record start time for response time calculation
+    start_time = asyncio.get_event_loop().time()
+    
     if not mcp_client:
         await websocket.send_text(json.dumps({
             "type": "error",
@@ -1489,6 +1492,9 @@ async def handle_user_message(websocket: WebSocket, user_message: str):
                     "result": {"error": str(e)}
                 })
         
+        # Extract tools called for database storage
+        tools_called = [result["tool_name"] for result in tool_results]
+        
         # Step 2.5: Get project details for top projects
         if project_accessions and len(project_accessions) > 0 and len(tool_results) > 0:
             logger.info(f"📋 Getting details for {len(project_accessions)} project: {project_accessions}")
@@ -1504,11 +1510,26 @@ async def handle_user_message(websocket: WebSocket, user_message: str):
                 try:
                     logger.info(f"📋 Getting details for project {i}/{len(project_accessions)}: {accession}")
                     
-                    # Get project details with proper error handling
+                    # Send progress update to frontend
+                    await websocket.send_text(json.dumps({
+                        "type": "progress",
+                        "message": f"Retrieving project details ({i}/{len(project_accessions)}): {accession}",
+                        "progress": i,
+                        "total": len(project_accessions)
+                    }))
+                    
+                    # Get project details with proper error handling and timeout
                     try:
-                        details_result = await asyncio.to_thread(
-                            mcp_client.call_tool, "get_project_details", {"project_accession": accession}
+                        details_result = await asyncio.wait_for(
+                            asyncio.to_thread(
+                                mcp_client.call_tool, "get_project_details", {"project_accession": accession}
+                            ),
+                            timeout=45.0  # 45 second timeout per project
                         )
+                    except asyncio.TimeoutError:
+                        logger.error(f"❌ Timeout getting details for project {accession}")
+                        # Skip this project and continue
+                        continue
                     except Exception as e:
                         logger.error(f"❌ Error getting details for project {accession}: {e}")
                         # Skip this project and continue
@@ -1529,11 +1550,21 @@ async def handle_user_message(websocket: WebSocket, user_message: str):
                     
                     logger.info(f"✅ Project details retrieved: {accession} - {title}")
                     
-                    # Add to tool results
-                    tool_results.append({
-                        "tool_name": "get_project_details",
-                        "result": details_result
-                    })
+                    # Check if the result contains an error
+                    if details_result.get("error"):
+                        logger.warning(f"⚠️ Project details for {accession} contains error: {details_result.get('error')}")
+                        # Still add to results but mark as error
+                        tool_results.append({
+                            "tool_name": "get_project_details",
+                            "result": details_result,
+                            "error": True
+                        })
+                    else:
+                        # Add to tool results
+                        tool_results.append({
+                            "tool_name": "get_project_details",
+                            "result": details_result
+                        })
                     
                     successful_details += 1
                     
@@ -1555,9 +1586,27 @@ async def handle_user_message(websocket: WebSocket, user_message: str):
                     break
             
             logger.info(f"📋 Successfully retrieved details for {successful_details}/{len(project_accessions)} projects")
+            
+            # Send completion update to frontend
+            await websocket.send_text(json.dumps({
+                "type": "progress",
+                "message": f"Completed retrieving details for {successful_details}/{len(project_accessions)} projects",
+                "progress": len(project_accessions),
+                "total": len(project_accessions),
+                "completed": True
+            }))
         
         # Step 3: Generate response using AI with timeout
         try:
+            # Send progress update for AI response generation
+            await websocket.send_text(json.dumps({
+                "type": "progress",
+                "message": "Generating AI response with project details...",
+                "step": "AI Response Generation"
+            }))
+            
+            logger.info(f"🤖 Starting AI response generation with {len(tool_results)} tool results")
+            
             # Add context about available project accessions if we have them
             if project_accessions and len(project_accessions) > 0:
                 # Add project accessions to the tool results for AI to use
@@ -1571,17 +1620,74 @@ async def handle_user_message(websocket: WebSocket, user_message: str):
                     }
                 })
             
+            logger.info(f"📊 Tool results summary: {len(tool_results)} tools called")
+            for i, result in enumerate(tool_results):
+                tool_name = result.get("tool_name", "unknown")
+                logger.info(f"   {i+1}. {tool_name}")
+            
             # Use AI to generate proper response
+            logger.info("🚀 Calling AI service to generate response...")
+            logger.info(f"   User message: {user_message[:100]}...")
+            logger.info(f"   Intent: {ai_analysis.get('intent', 'unknown')}")
+            logger.info(f"   Tool results count: {len(tool_results)}")
+            logger.info(f"   AI service available: {ai_service is not None}")
+            
+            # Log the structure of tool_results for debugging
+            for i, result in enumerate(tool_results):
+                tool_name = result.get("tool_name", "unknown")
+                result_data = result.get("result", {})
+                logger.info(f"   Tool {i+1}: {tool_name} - Data keys: {list(result_data.keys()) if isinstance(result_data, dict) else 'not dict'}")
+            
+            # Call AI service with detailed logging
+            start_ai_time = asyncio.get_event_loop().time()
+            logger.info(f"   Starting AI service call at {start_ai_time}")
+            
             response = await asyncio.wait_for(
                 asyncio.to_thread(ai_service.generate_response, user_message, tool_results, ai_analysis["intent"]),
-                timeout=60.0
+                timeout=60.0  # Back to 60 seconds for now
             )
+            
+            end_ai_time = asyncio.get_event_loop().time()
+            ai_duration = end_ai_time - start_ai_time
+            logger.info(f"✅ AI response generated successfully in {ai_duration:.2f}s (length: {len(response)})")
+            logger.info(f"   Response preview: {response[:200]}...")
+            
+            # Send completion update for AI response generation
+            await websocket.send_text(json.dumps({
+                "type": "progress",
+                "message": "AI response generated successfully!",
+                "step": "AI Response Generation",
+                "completed": True
+            }))
         except asyncio.TimeoutError:
-            logger.error("Response generation timed out")
-            response = "I apologize, but the response generation timed out. Please try again with a simpler query."
+            logger.error("Response generation timed out, generating fallback response")
+            
+            # Send timeout update to frontend
+            await websocket.send_text(json.dumps({
+                "type": "progress",
+                "message": "AI response generation timed out - generating fallback response",
+                "step": "AI Response Generation",
+                "error": True
+            }))
+            
+            # Generate a fallback response based on the tool results
+            try:
+                response = generate_fallback_response(user_message, tool_results, ai_analysis["intent"])
+                logger.info("✅ Fallback response generated successfully")
+            except Exception as fallback_error:
+                logger.error(f"Fallback response generation failed: {fallback_error}")
+                response = "I apologize, but the response generation timed out. Please try again with a simpler query."
         except Exception as response_error:
             logger.error(f"Response generation failed: {response_error}")
             response = f"I apologize, but I encountered an error while generating a response: {str(response_error)}"
+            
+            # Send error update to frontend
+            await websocket.send_text(json.dumps({
+                "type": "progress",
+                "message": f"AI response generation failed: {str(response_error)}",
+                "step": "AI Response Generation",
+                "error": True
+            }))
         
         # Calculate response time
         end_time = asyncio.get_event_loop().time()
@@ -1594,7 +1700,8 @@ async def handle_user_message(websocket: WebSocket, user_message: str):
                 # Use relative path for production compatibility
                 api_url = "http://127.0.0.1:9000/api/questions"
                 # In production, this will be: https://www.ebi.ac.uk/pride/services/mcp_api/questions
-                await client.post(api_url, json={
+                # Send as query parameters since the API expects them in the URL
+                params = {
                     "question": user_message,
                     "user_id": "web_ui_user",
                     "session_id": "web_session",
@@ -1608,7 +1715,8 @@ async def handle_user_message(websocket: WebSocket, user_message: str):
                         "intent": ai_analysis.get("intent", "unknown"),
                         "total_tools_called": len(tools_called)
                     }
-                })
+                }
+                await client.post(api_url, params=params)
         except Exception as db_error:
             logger.warning(f"Failed to store question in database: {db_error}")
         
@@ -1633,7 +1741,8 @@ async def handle_user_message(websocket: WebSocket, user_message: str):
                 # Use relative path for production compatibility
                 api_url = "http://127.0.0.1:9000/api/questions"
                 # In production, this will be: https://www.ebi.ac.uk/pride/services/mcp_api/questions
-                await client.post(api_url, json={
+                # Send as query parameters since the API expects them in the URL
+                params = {
                     "question": user_message,
                     "user_id": "web_ui_user",
                     "session_id": "web_session",
@@ -1646,7 +1755,8 @@ async def handle_user_message(websocket: WebSocket, user_message: str):
                         "ai_service_available": ai_service is not None,
                         "error_type": type(e).__name__
                     }
-                })
+                }
+                await client.post(api_url, params=params)
         except Exception as db_error:
             logger.warning(f"Failed to store error in database: {db_error}")
         
@@ -1671,6 +1781,53 @@ def create_professional_ui(mcp_server_url: str, port: int = 9090):
         logger.error(f"❌ Failed to connect to MCP server: {e}")
     
     return app
+
+def generate_fallback_response(user_message: str, tool_results: list, intent: str) -> str:
+    """Generate a fallback response when AI service is unavailable or times out."""
+    try:
+        # Extract project accessions if available
+        project_accessions = []
+        for result in tool_results:
+            if result.get("tool_name") == "project_accessions":
+                project_accessions = result.get("result", {}).get("accessions", [])
+                break
+        
+        # Extract project details if available
+        project_details = []
+        for result in tool_results:
+            if result.get("tool_name") == "get_project_details":
+                details = result.get("result", {})
+                if not details.get("error"):
+                    project_details.append(details)
+        
+        # Generate response based on intent and available data
+        if intent == "search_projects":
+            if project_accessions:
+                response = f"I found {len(project_accessions)} projects matching your query: {', '.join(project_accessions[:5])}"
+                if len(project_accessions) > 5:
+                    response += f" and {len(project_accessions) - 5} more."
+                
+                if project_details:
+                    response += "\n\nHere are the details for the retrieved projects:\n"
+                    for i, details in enumerate(project_details[:3], 1):
+                        title = details.get("data", {}).get("title", "No title")
+                        response += f"\n{i}. {title}"
+                
+                response += f"\n\nYou can view these projects at: https://www.ebi.ac.uk/pride/archive/projects/"
+                return response
+            else:
+                return "I searched for projects but couldn't find any matching your criteria. Please try different keywords."
+        
+        elif intent == "get_available_data":
+            return "I can help you explore the PRIDE Archive. You can search for projects by keywords, organisms, instruments, and more. What specific information are you looking for?"
+        
+        else:
+            return "I've processed your request and retrieved some information. Please let me know if you need more specific details about any of the projects."
+    
+    except Exception as e:
+        logger.error(f"Error generating fallback response: {e}")
+        return "I apologize, but I encountered an error while processing your request. Please try again."
+
 
 def run_professional_ui(mcp_server_url: str, port: int = 9090, host: str = "127.0.0.1"):
     """Run the professional UI server."""

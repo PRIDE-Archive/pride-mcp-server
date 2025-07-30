@@ -54,11 +54,17 @@ def start_web_ui():
     try:
         # Start the professional UI directly
         env = os.environ.copy()
-        env['PYTHONPATH'] = f"mcp_client_tools/src:{env.get('PYTHONPATH', '')}"
+        env['PYTHONPATH'] = f"{os.getcwd()}/mcp_client_tools/src:{env.get('PYTHONPATH', '')}"
+        
+        # In Kubernetes, both services run in the same pod, so use localhost
+        # But also provide fallback options for different deployment scenarios
+        mcp_server_url = os.environ.get('MCP_SERVER_URL', 'http://127.0.0.1:9000')
+        
+        print(f"🔗 Connecting UI to MCP server at: {mcp_server_url}")
         
         web_process = subprocess.Popen([
             sys.executable, "-m", "mcp_client_tools.professional_ui", 
-            "--server-url", "http://127.0.0.1:9000",
+            "--server-url", mcp_server_url,
             "--port", "9090",
             "--host", "0.0.0.0"
         ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env, bufsize=1, universal_newlines=True)

@@ -8,7 +8,15 @@ import sys
 import time
 import signal
 import os
+import threading
 from pathlib import Path
+
+def print_output(process, prefix):
+    """Consume process output to prevent blocking."""
+    for line in iter(process.stdout.readline, ''):
+        if line:
+            # Don't print anything - just consume the output to prevent blocking
+            pass
 
 def load_env_config():
     """Load environment variables from config.env file."""
@@ -25,20 +33,55 @@ def load_env_config():
     else:
         print("⚠️  config.env not found, using default settings")
 
+def start_api_server():
+    """Start the PRIDE API server."""
+    print("🚀 Starting PRIDE API Server...")
+    try:
+        # Start the API server with real-time output
+        api_process = subprocess.Popen([
+            sys.executable, "server.py"
+        ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1, universal_newlines=True)
+        
+        # Start a thread to read and display output in real-time
+        api_output_thread = threading.Thread(target=print_output, args=(api_process, "API"), daemon=True)
+        api_output_thread.start()
+        
+
+        
+        # Wait a moment for server to start
+        time.sleep(3)
+        
+        if api_process.poll() is None:
+            print("✅ PRIDE API Server started successfully on http://0.0.0.0:9000")
+            return api_process
+        else:
+            stdout, stderr = api_process.communicate()
+            print(f"❌ Failed to start API server: {stdout}")
+            return None
+    except Exception as e:
+        print(f"❌ Error starting API server: {e}")
+        return None
+
 def start_mcp_server():
     """Start the PRIDE MCP server."""
     print("🚀 Starting PRIDE MCP Server...")
     try:
         # Start the MCP server with real-time output
         mcp_process = subprocess.Popen([
-            sys.executable, "server.py"
+            sys.executable, "mcp_server.py"
         ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1, universal_newlines=True)
+        
+        # Start a thread to read and display output in real-time
+        mcp_output_thread = threading.Thread(target=print_output, args=(mcp_process, "MCP"), daemon=True)
+        mcp_output_thread.start()
+        
+
         
         # Wait a moment for server to start
         time.sleep(3)
         
         if mcp_process.poll() is None:
-            print("✅ PRIDE MCP Server started successfully on http://127.0.0.1:9000")
+            print("✅ PRIDE MCP Server started successfully on http://0.0.0.0:9001")
             return mcp_process
         else:
             stdout, stderr = mcp_process.communicate()
@@ -64,15 +107,21 @@ def start_web_ui():
         
         web_process = subprocess.Popen([
             sys.executable, "-m", "mcp_client_tools.professional_ui", 
-            "--server-url", "http://127.0.0.1:9000",
+            "--server-url", "http://0.0.0.0:9001",
             "--port", "9090"
         ], cwd=client_dir, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env, bufsize=1, universal_newlines=True)
+        
+        # Start a thread to read and display output in real-time
+        web_output_thread = threading.Thread(target=print_output, args=(web_process, "UI"), daemon=True)
+        web_output_thread.start()
+        
+
         
         # Wait a moment for UI to start
         time.sleep(3)
         
         if web_process.poll() is None:
-            print("✅ Professional UI started successfully on http://127.0.0.1:9090")
+            print("✅ Professional UI started successfully on http://0.0.0.0:9090")
             return web_process
         else:
             stdout, stderr = web_process.communicate()
@@ -80,6 +129,32 @@ def start_web_ui():
             return None
     except Exception as e:
         print(f"❌ Error starting Professional UI: {e}")
+        return None
+
+def start_analytics_ui():
+    """Start the analytics dashboard."""
+    print("📊 Starting Analytics Dashboard...")
+    try:
+        # Start the analytics server
+        analytics_process = subprocess.Popen([
+            sys.executable, "serve_analytics.py",
+            "--port", "8080"
+        ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1, universal_newlines=True)
+        
+
+        
+        # Wait a moment for analytics to start
+        time.sleep(3)
+        
+        if analytics_process.poll() is None:
+            print("✅ Analytics Dashboard started successfully on http://0.0.0.0:8080")
+            return analytics_process
+        else:
+            stdout, stderr = analytics_process.communicate()
+            print(f"❌ Failed to start Analytics Dashboard: {stdout}")
+            return None
+    except Exception as e:
+        print(f"❌ Error starting Analytics Dashboard: {e}")
         return None
 
 def signal_handler(signum, frame):
@@ -98,6 +173,12 @@ def main():
     # Set up signal handlers for graceful shutdown
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
+    
+    # Start API server
+    api_process = start_api_server()
+    if not api_process:
+        print("❌ Failed to start API server. Exiting.")
+        sys.exit(1)
     
     # Start MCP server
     mcp_process = start_mcp_server()
@@ -123,13 +204,21 @@ def main():
     web_process = start_web_ui()
     if not web_process:
         print("⚠️  Failed to start Professional UI. MCP server is still running.")
-        print("   You can access the MCP server directly at http://127.0.0.1:9000")
+        print("   You can access the MCP server directly at http://0.0.0.0:9001")
+    
+    # Start Analytics Dashboard
+    analytics_process = start_analytics_ui()
+    if not analytics_process:
+        print("⚠️  Failed to start Analytics Dashboard. Other services are still running.")
     
     print("\n🎉 Services started successfully!")
     print("📋 Service URLs:")
-    print("   MCP Server: http://127.0.0.1:9000")
+    print("   API Server: http://0.0.0.0:9000")
+    print("   MCP Server: http://0.0.0.0:9001")
     if web_process:
-        print("   Professional UI: http://127.0.0.1:9090")
+        print("   Professional UI: http://0.0.0.0:9090")
+    if analytics_process:
+        print("   Analytics Dashboard: http://0.0.0.0:8080")
     print("\n💡 Press Ctrl+C to stop all services")
     
     try:
@@ -138,18 +227,31 @@ def main():
             time.sleep(1)
             
             # Check if processes are still running
+            if api_process.poll() is not None:
+                print("❌ API server stopped unexpectedly")
+                break
+                
             if mcp_process.poll() is not None:
                 print("❌ MCP server stopped unexpectedly")
                 break
                 
             if web_process and web_process.poll() is not None:
-                print("❌ AI Conversational UI stopped unexpectedly")
+                print("❌ Professional UI stopped unexpectedly")
+                break
+                
+            if analytics_process and analytics_process.poll() is not None:
+                print("❌ Analytics Dashboard stopped unexpectedly")
                 break
                 
     except KeyboardInterrupt:
         print("\n🛑 Shutting down services...")
     finally:
         # Clean up processes
+        if api_process and api_process.poll() is None:
+            api_process.terminate()
+            api_process.wait()
+            print("✅ API server stopped")
+            
         if mcp_process and mcp_process.poll() is None:
             mcp_process.terminate()
             mcp_process.wait()
@@ -158,7 +260,12 @@ def main():
         if web_process and web_process.poll() is None:
             web_process.terminate()
             web_process.wait()
-            print("✅ AI Conversational UI stopped")
+            print("✅ Professional UI stopped")
+            
+        if analytics_process and analytics_process.poll() is None:
+            analytics_process.terminate()
+            analytics_process.wait()
+            print("✅ Analytics Dashboard stopped")
         
         print("👋 All services stopped. Goodbye!")
 

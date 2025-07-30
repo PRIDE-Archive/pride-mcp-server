@@ -96,6 +96,8 @@ CRITICAL: For metadata questions about what's available, ONLY call get_pride_fac
 - "What filters can I use?" → ONLY get_pride_facets
 - "What diseases are available?" → ONLY get_pride_facets
 - "What instruments are available?" → ONLY get_pride_facets
+- "What software tools are commonly used?" → ONLY get_pride_facets
+- "What software tools are commonly used in PRIDE studies?" → ONLY get_pride_facets
 - "Show me what's available" → ONLY get_pride_facets
 - "List available data" → ONLY get_pride_facets
 - "What can I search for?" → ONLY get_pride_facets
@@ -142,6 +144,7 @@ Examples:
 - "What organisms are available?" → ONLY get_pride_facets (no fetch_projects)
 - "What organisms are available in pride archive?" → ONLY get_pride_facets (no fetch_projects)
 - "What filters can I use?" → ONLY get_pride_facets (no fetch_projects)
+- "What software tools are commonly used in PRIDE studies?" → ONLY get_pride_facets (no fetch_projects)
 - "Show me recent proteomics studies" → 
   1. get_pride_facets(keyword="proteomics") to find matching filters
   2. fetch_projects(keyword="proteomics", filters="matching_filters")
@@ -333,6 +336,7 @@ Your task is to generate a professional, research-oriented response that:
    - Use markdown H3 (###) for each project
    - ALWAYS include clickable EBI links: [PXD######](https://www.ebi.ac.uk/pride/archive/projects/PXD######)
    - List key information in bullet points: Organism, Technique, Keywords, etc.
+   - SKIP Project Description field - it's too long and verbose
    - Skip any field that shows "Not available" or "(Title not available)"
    - CRITICAL: Every project accession MUST have a clickable EBI link
 4. **Other Project Accessions**: If there are more than 3 projects, include a section called 'Other Project Accessions' and list ONLY the accessions not in the top 3, as clickable EBI links. If there are no other accessions, omit this section.
@@ -347,10 +351,11 @@ CRITICAL FORMATTING REQUIREMENTS:
 [Professional summary of results]
 
 ### [PXD000001](https://www.ebi.ac.uk/pride/archive/projects/PXD000001)
+- **Title:** [Project title]
 - **Organism:** [Organism name]
 - **Technique:** [Experimental technique]
 - **Keywords:** [Relevant keywords]
-- **[Other relevant fields]**
+- **[Other relevant fields - but NOT Project Description]**
 
 ### [PXD000002](https://www.ebi.ac.uk/pride/archive/projects/PXD000002)
 [Same format as above]
@@ -373,6 +378,7 @@ CRITICAL FORMATTING REQUIREMENTS:
 
 **Data Handling:**
 - Skip any field that shows "Not available" or "(Title not available)"
+- SKIP Project Description field - it's too long and verbose
 - Only include meaningful, available information
 - CRITICAL: Look for "all_accessions" in the fetch_projects result and include ONLY the accessions not in the top 3 in the 'Other Project Accessions' section
 - Create proper EBI links for every accession
@@ -386,24 +392,40 @@ CRITICAL FORMATTING REQUIREMENTS:
 **FINAL INSTRUCTION**: 
 Look at the tool_results data above. Find the get_project_details results and use ONLY the real data from those results. 
 If you see "To be added" or "(Title not available)" in the real data, then use that exact text. 
+DO NOT include Project Description field - it's too verbose and long.
 DO NOT invent or generate any information that is not in the tool_results.
 DO NOT make statements about API limitations or unsupported features - the API supports all the features mentioned in the tool results.
 
 Generate a professional, well-structured response:
 """
         
-        if self.provider == "gemini":
-            response = self.model.generate_content(prompt)
-            result_text = response.text.strip()
-        elif self.provider == "openai":
-            response = self.client.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.3
-            )
-            result_text = response.choices[0].message.content.strip()
-        else:
-            raise ValueError(f"Unsupported provider: {self.provider}")
+        logger.info(f"🤖 Calling LLM provider: {self.provider}")
+        logger.info(f"📝 Prompt length: {len(prompt)} characters")
+        
+        try:
+            if self.provider == "gemini":
+                logger.info("🚀 Calling Gemini API...")
+                response = self.model.generate_content(prompt)
+                logger.info("✅ Gemini API call completed")
+                result_text = response.text.strip()
+                logger.info(f"📄 Gemini response length: {len(result_text)} characters")
+            elif self.provider == "openai":
+                logger.info("🚀 Calling OpenAI API...")
+                response = self.client.chat.completions.create(
+                    model="gpt-3.5-turbo",
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.3
+                )
+                logger.info("✅ OpenAI API call completed")
+                result_text = response.choices[0].message.content.strip()
+                logger.info(f"📄 OpenAI response length: {len(result_text)} characters")
+            else:
+                raise ValueError(f"Unsupported provider: {self.provider}")
+        except Exception as e:
+            logger.error(f"❌ LLM API call failed: {e}")
+            logger.error(f"❌ Provider: {self.provider}")
+            logger.error(f"❌ Prompt preview: {prompt[:200]}...")
+            raise
         
         # Handle empty responses
         if not result_text or result_text.strip() == "":

@@ -9,7 +9,7 @@ from slack_integration import slack
 logger = logging.getLogger(__name__)
 
 # Create API router
-api_router = APIRouter(prefix="/api", tags=["analytics"])
+api_router = APIRouter(tags=["analytics"])
 
 @api_router.get("/health")
 async def health_check():
