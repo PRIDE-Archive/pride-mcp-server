@@ -36,5 +36,5 @@ EXPOSE 9000 9090
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:9000/mcp/ || exit 1
 
-# Start the application
-CMD ["uv", "run", "python", "server.py"] 
+# Start both servers using the start_services script
+CMD ["uv", "run", "python", "start_services.py"] 

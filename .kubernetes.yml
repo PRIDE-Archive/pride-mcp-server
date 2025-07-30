@@ -82,7 +82,7 @@ spec:
               name: ui
             - containerPort: 8080
               name: analytics
-          command: ["uv", "run", "python", "server.py"]
+          command: ["uv", "run", "python", "start_services.py"]
           volumeMounts:
             - name: database-storage
               mountPath: /app/data
