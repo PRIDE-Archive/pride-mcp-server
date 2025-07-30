@@ -37,6 +37,20 @@ data:
   # echo -n "your-api-key" | base64
   GEMINI_API_KEY: $GEMINI_API_KEY_B64
 ---
+# Persistent Volume for SQLite database
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: $app_name-database-pvc
+  namespace: $k8s_namespace
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: $k8s_storageclass
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -74,6 +88,10 @@ spec:
             - containerPort: 9090
               name: ui
           command: ["uv", "run", "python", "server.py"]
+          volumeMounts:
+            - name: database-storage
+              mountPath: /app/data
+              subPath: database
           env:
             - name: MCP_SERVER_HOST
               value: "0.0.0.0"
@@ -90,6 +108,9 @@ spec:
           envFrom:
             - configMapRef:
                 name: $app_name-config
+          env:
+            - name: DATABASE_PATH
+              value: "/app/data/pride_questions.db"
           resources:
             requests:
               memory: "256Mi"
@@ -97,6 +118,10 @@ spec:
             limits:
               memory: "512Mi"
               cpu: "500m"
+      volumes:
+        - name: database-storage
+          persistentVolumeClaim:
+            claimName: $app_name-database-pvc
           livenessProbe:
             httpGet:
               path: /mcp/
@@ -196,32 +221,32 @@ spec:
   # Catch-all rule for internal routing
   - http:
       paths:
-      # MCP Server - routes /mcp/* to MCP service
-      - path: /mcp(/|$)(.*)
+      # MCP Server - routes /pride-mcp/mcp/* to MCP service
+      - path: /pride-mcp/mcp(/|$)(.*)
         pathType: Prefix
         backend:
           service:
             name: $app_name-mcp-service
             port:
               number: 9000
-      # Web UI - routes /ui/* to UI service  
-      - path: /ui(/|$)(.*)
+      # Web UI - routes /pride-mcp/ui/* to UI service  
+      - path: /pride-mcp/ui(/|$)(.*)
         pathType: Prefix
         backend:
           service:
             name: $app_name-ui-service
             port:
               number: 9090
-      # Analytics Dashboard - routes /analytics/* to analytics service
-      - path: /analytics(/|$)(.*)
+      # Analytics Dashboard - routes /pride-mcp/analytics/* to analytics service
+      - path: /pride-mcp/analytics(/|$)(.*)
         pathType: Prefix
         backend:
           service:
             name: $app_name-analytics-service
             port:
               number: 8080
-      # API endpoints - routes /api/* to MCP service (same as MCP)
-      - path: /api(/|$)(.*)
+      # API endpoints - routes /pride-mcp/api/* to MCP service (same as MCP)
+      - path: /pride-mcp/api(/|$)(.*)
         pathType: Prefix
         backend:
           service:
@@ -229,7 +254,7 @@ spec:
             port:
               number: 9000
       # Root path - redirects to UI
-      - path: /(.*)
+      - path: /pride-mcp(/|$)(.*)
         pathType: Prefix
         backend:
           service:
