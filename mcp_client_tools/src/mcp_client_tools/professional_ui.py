@@ -1583,6 +1583,35 @@ async def handle_user_message(websocket: WebSocket, user_message: str):
             logger.error(f"Response generation failed: {response_error}")
             response = f"I apologize, but I encountered an error while generating a response: {str(response_error)}"
         
+        # Calculate response time
+        end_time = asyncio.get_event_loop().time()
+        response_time_ms = int((end_time - start_time) * 1000)
+        
+        # Store question in database
+        try:
+            import httpx
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                # Use relative path for production compatibility
+                api_url = "http://127.0.0.1:9000/api/questions"
+                # In production, this will be: https://www.ebi.ac.uk/pride/services/mcp_api/questions
+                await client.post(api_url, json={
+                    "question": user_message,
+                    "user_id": "web_ui_user",
+                    "session_id": "web_session",
+                    "response_time_ms": response_time_ms,
+                    "tools_called": tools_called,
+                    "response_length": len(response),
+                    "success": success,
+                    "error_message": error_message,
+                    "metadata": {
+                        "ai_service_available": ai_service is not None,
+                        "intent": ai_analysis.get("intent", "unknown"),
+                        "total_tools_called": len(tools_called)
+                    }
+                })
+        except Exception as db_error:
+            logger.warning(f"Failed to store question in database: {db_error}")
+        
         await websocket.send_text(json.dumps({
             "type": "assistant",
             "content": response
@@ -1590,6 +1619,37 @@ async def handle_user_message(websocket: WebSocket, user_message: str):
         
     except Exception as e:
         logger.error(f"Error handling user message: {e}")
+        error_message = str(e)
+        success = False
+        
+        # Calculate response time for error case
+        end_time = asyncio.get_event_loop().time()
+        response_time_ms = int((end_time - start_time) * 1000)
+        
+        # Store error in database
+        try:
+            import httpx
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                # Use relative path for production compatibility
+                api_url = "http://127.0.0.1:9000/api/questions"
+                # In production, this will be: https://www.ebi.ac.uk/pride/services/mcp_api/questions
+                await client.post(api_url, json={
+                    "question": user_message,
+                    "user_id": "web_ui_user",
+                    "session_id": "web_session",
+                    "response_time_ms": response_time_ms,
+                    "tools_called": tools_called,
+                    "response_length": 0,
+                    "success": False,
+                    "error_message": error_message,
+                    "metadata": {
+                        "ai_service_available": ai_service is not None,
+                        "error_type": type(e).__name__
+                    }
+                })
+        except Exception as db_error:
+            logger.warning(f"Failed to store error in database: {db_error}")
+        
         await websocket.send_text(json.dumps({
             "type": "error",
             "error": str(e)

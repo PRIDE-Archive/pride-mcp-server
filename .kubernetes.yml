@@ -1,0 +1,238 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: $k8s_namespace
+  labels:
+    name: $k8s_namespace
+    app: $app_name
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: $app_name-config
+  namespace: $k8s_namespace
+data:
+  config.env: |
+    # PRIDE MCP Server Configuration
+    MCP_SERVER_HOST=0.0.0.0
+    MCP_SERVER_PORT=9000
+    LOG_LEVEL=INFO
+    
+    # AI Configuration (optional - can be overridden by secrets)
+    GEMINI_API_KEY=
+    
+    # Server Configuration
+    SERVER_NAME=PRIDE Archive MCP Server
+    SERVER_VERSION=2.0.0
+    SERVER_DESCRIPTION=Model Context Protocol server for PRIDE Archive proteomics data
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: $app_name-secrets
+  namespace: $k8s_namespace
+type: Opaque
+data:
+  # Base64 encoded values - replace with your actual API key
+  # echo -n "your-api-key" | base64
+  GEMINI_API_KEY: $GEMINI_API_KEY_B64
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: $app_name
+  namespace: $k8s_namespace
+  labels:
+    app: $app_name
+    version: v1
+spec:
+  replicas: $k8s_replicas
+  revisionHistoryLimit: 1
+  selector:
+    matchLabels:
+      app: $app_name
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 25%
+  template:
+    metadata:
+      labels:
+        app: $app_name
+        version: v1
+    spec:
+      imagePullSecrets:
+        - name: $DOCKER_PULL_SECRET
+      containers:
+        - name: $app_name
+          image: $IMAGE
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 9000
+              name: mcp
+            - containerPort: 9090
+              name: ui
+          command: ["uv", "run", "python", "server.py"]
+          env:
+            - name: MCP_SERVER_HOST
+              value: "0.0.0.0"
+            - name: MCP_SERVER_PORT
+              value: "9000"
+            - name: LOG_LEVEL
+              value: "INFO"
+            - name: GEMINI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: $app_name-secrets
+                  key: GEMINI_API_KEY
+                  optional: true
+          envFrom:
+            - configMapRef:
+                name: $app_name-config
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /mcp/
+              port: 9000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /mcp/
+              port: 9000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          startupProbe:
+            httpGet:
+              path: /mcp/
+              port: 9000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 30
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: $app_name-mcp-service
+  namespace: $k8s_namespace
+  labels:
+    app: $app_name
+spec:
+  selector:
+    app: $app_name
+  ports:
+    - protocol: TCP
+      port: 9000
+      targetPort: 9000
+      name: mcp
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: $app_name-ui-service
+  namespace: $k8s_namespace
+  labels:
+    app: $app_name
+spec:
+  selector:
+    app: $app_name
+  ports:
+    - protocol: TCP
+      port: 9090
+      targetPort: 9090
+      name: ui
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: $app_name-analytics-service
+  namespace: $k8s_namespace
+  labels:
+    app: $app_name
+spec:
+  selector:
+    app: $app_name
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+      name: analytics
+  type: ClusterIP
+---
+# Internal Kubernetes Ingress for path-based routing
+# This handles routing within the cluster after EBI load balancer sends traffic
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: $app_name-ingress
+  namespace: $k8s_namespace
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    # Path rewriting for internal routing
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    # CORS headers for web UI
+    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization"
+spec:
+  rules:
+  # Catch-all rule for internal routing
+  - http:
+      paths:
+      # MCP Server - routes /mcp/* to MCP service
+      - path: /mcp(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: $app_name-mcp-service
+            port:
+              number: 9000
+      # Web UI - routes /ui/* to UI service  
+      - path: /ui(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: $app_name-ui-service
+            port:
+              number: 9090
+      # Analytics Dashboard - routes /analytics/* to analytics service
+      - path: /analytics(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: $app_name-analytics-service
+            port:
+              number: 8080
+      # API endpoints - routes /api/* to MCP service (same as MCP)
+      - path: /api(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: $app_name-mcp-service
+            port:
+              number: 9000
+      # Root path - redirects to UI
+      - path: /(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: $app_name-ui-service
+            port:
+              number: 9090 

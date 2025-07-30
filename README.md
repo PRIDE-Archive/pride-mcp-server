@@ -16,6 +16,10 @@ This MCP server provides tools for searching and retrieving proteomics data from
 - **Project Details**: Retrieve detailed information about proteomics projects
 - **File Access**: Get file information and download links
 - **MCP Protocol**: Standard Model Context Protocol implementation
+- **Analytics & Database**: SQLite database for tracking questions, response times, and usage analytics
+- **Slack Integration**: Real-time notifications and analytics reports via Slack webhooks
+- **API Endpoints**: RESTful API for accessing analytics data and system statistics
+- **Analytics Dashboard**: Web-based dashboard for visualizing usage patterns and system performance
 
 ## Quick Start
 
@@ -44,6 +48,7 @@ uv run python start_services.py
 The services will start on:
 - MCP Server: http://127.0.0.1:9000
 - AI Conversational UI: http://127.0.0.1:9090
+- Analytics Dashboard: http://127.0.0.1:8080/analytics_dashboard.html
 
 ## MCP Server Integration
 
@@ -143,6 +148,112 @@ The server can be integrated with AI assistants that support the MCP protocol:
 claude --mcp-server pride-mcp-server
 ```
 
+## Analytics & Database Features
+
+### Database Storage
+
+The system automatically stores all questions and responses in a SQLite database (`pride_questions.db`) with the following information:
+
+- **Questions**: User queries with timestamps
+- **Response Times**: Performance metrics for each interaction
+- **Tool Usage**: Which MCP tools were called
+- **Success/Failure**: Whether the request completed successfully
+- **Metadata**: Additional context about the interaction
+
+### API Endpoints
+
+The server provides RESTful API endpoints for accessing analytics data:
+
+```bash
+# Health check
+GET /api/health
+
+# Get questions with filtering
+GET /api/questions?limit=100&user_id=user123&start_date=2024-01-01
+
+# Get analytics data
+GET /api/analytics?days=30
+
+# Get daily statistics
+GET /api/analytics/daily?date=2024-01-15
+
+# Get system statistics
+GET /api/stats
+
+# Export questions data
+GET /api/export/questions?format=csv&start_date=2024-01-01
+
+# Store a question (used by UI)
+POST /api/questions
+```
+
+### Analytics Dashboard
+
+A web-based dashboard provides real-time visualization of system usage:
+
+```bash
+# Start the analytics dashboard
+python serve_analytics.py --port 8080
+```
+
+**Features:**
+- Real-time statistics (questions, success rate, response times)
+- Interactive charts showing daily usage patterns
+- Recent questions table with status and performance metrics
+- Data export functionality (CSV format)
+- Auto-refresh every 30 seconds
+
+### Slack Integration
+
+Configure Slack notifications by setting the `SLACK_WEBHOOK_URL` environment variable:
+
+```bash
+# Add to config.env
+SLACK_WEBHOOK_URL=https://hooks.slack.com/services/YOUR/WEBHOOK/URL
+```
+
+**Available Notifications:**
+- **Question Notifications**: Real-time alerts for new questions
+- **Daily Analytics Reports**: Automated daily summaries
+- **Error Alerts**: System error notifications
+- **System Status**: Startup/shutdown notifications
+
+**Slack API Endpoints:**
+```bash
+# Test Slack integration
+POST /api/slack/test
+
+# Send analytics report to Slack
+POST /api/slack/analytics?days=7
+```
+
+### Database Schema
+
+The SQLite database contains two main tables:
+
+**questions table:**
+- `id`: Primary key
+- `question`: User's question text
+- `user_id`: User identifier
+- `session_id`: Session identifier
+- `timestamp`: When the question was asked
+- `response_time_ms`: Response time in milliseconds
+- `tools_called`: JSON array of tools used
+- `response_length`: Length of the response
+- `success`: Whether the request succeeded
+- `error_message`: Error details if failed
+- `metadata`: Additional JSON metadata
+
+**analytics table:**
+- `id`: Primary key
+- `date`: Date of the analytics
+- `total_questions`: Total questions for the day
+- `successful_questions`: Successful questions count
+- `avg_response_time_ms`: Average response time
+- `unique_users`: Number of unique users
+- `created_at`: When the record was created
+- `updated_at`: When the record was last updated
+
 ## Configuration
 
 ### Environment Variables
@@ -174,8 +285,14 @@ pride-mcp-server/
 ├── utils/
 │   ├── __init__.py
 │   └── logging.py           # Logging utilities
+├── mcp_client_tools/        # Professional UI and client tools
+├── database.py              # SQLite database management
+├── slack_integration.py     # Slack notifications
+├── api_endpoints.py         # REST API endpoints
+├── analytics_dashboard.html # Web analytics dashboard
+├── serve_analytics.py       # Analytics dashboard server
 ├── main.py                  # Server entry point
-├── server.py               # Simple server runner
+├── server.py               # Enhanced server with API endpoints
 ├── pyproject.toml          # Project configuration
 └── README.md               # This file
 ```
