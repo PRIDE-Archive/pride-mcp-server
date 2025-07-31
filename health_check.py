@@ -29,10 +29,19 @@ def main():
         ("http://127.0.0.1:8080", "Analytics Server")
     ]
     
+    # Check each service with retries
     all_healthy = True
     for url, name in services:
-        if not check_service(url, name):
-            all_healthy = False
+        retries = 3
+        for attempt in range(retries):
+            if check_service(url, name):
+                break
+            elif attempt < retries - 1:
+                print(f"⚠️  Retrying {name} in 5 seconds... (attempt {attempt + 1}/{retries})")
+                time.sleep(5)
+            else:
+                print(f"❌ {name} failed after {retries} attempts")
+                all_healthy = False
     
     if all_healthy:
         print("🎉 All services are healthy!")

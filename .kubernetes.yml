@@ -130,15 +130,13 @@ spec:
             timeoutSeconds: 15
             failureThreshold: 3
           startupProbe:
-            exec:
-              command:
-              - /bin/sh
-              - -c
-              - "sleep 30 && python health_check.py"
-            initialDelaySeconds: 30
-            periodSeconds: 15
+            httpGet:
+              path: /health
+              port: 9000
+            initialDelaySeconds: 60
+            periodSeconds: 30
             timeoutSeconds: 10
-            failureThreshold: 20
+            failureThreshold: 10
           lifecycle:
             postStart:
               exec:
@@ -150,10 +148,10 @@ spec:
             httpGet:
               path: /health
               port: 9000
-            initialDelaySeconds: 120
+            initialDelaySeconds: 180
             periodSeconds: 30
             timeoutSeconds: 10
-            failureThreshold: 5
+            failureThreshold: 10
       volumes:
         - name: database-storage
           persistentVolumeClaim:
