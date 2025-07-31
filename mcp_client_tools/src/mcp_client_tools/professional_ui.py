@@ -1700,8 +1700,8 @@ async def handle_user_message(websocket: WebSocket, user_message: str):
                 # Use relative path for production compatibility
                 api_url = "http://127.0.0.1:9000/api/questions"
                 # In production, this will be: https://www.ebi.ac.uk/pride/services/mcp_api/questions
-                # Send as query parameters since the API expects them in the URL
-                params = {
+                # Send as JSON body since the API expects them in the request body
+                json_data = {
                     "question": user_message,
                     "user_id": "web_ui_user",
                     "session_id": "web_session",
@@ -1716,7 +1716,9 @@ async def handle_user_message(websocket: WebSocket, user_message: str):
                         "total_tools_called": len(tools_called)
                     }
                 }
-                await client.post(api_url, params=params)
+                logger.info(f"💾 Storing question in database: {user_message[:50]}...")
+                response = await client.post(api_url, json=json_data)
+                logger.info(f"✅ Question stored successfully: {response.status_code}")
         except Exception as db_error:
             logger.warning(f"Failed to store question in database: {db_error}")
         
@@ -1741,13 +1743,13 @@ async def handle_user_message(websocket: WebSocket, user_message: str):
                 # Use relative path for production compatibility
                 api_url = "http://127.0.0.1:9000/api/questions"
                 # In production, this will be: https://www.ebi.ac.uk/pride/services/mcp_api/questions
-                # Send as query parameters since the API expects them in the URL
-                params = {
+                # Send as JSON body since the API expects them in the request body
+                json_data = {
                     "question": user_message,
                     "user_id": "web_ui_user",
                     "session_id": "web_session",
                     "response_time_ms": response_time_ms,
-                    "tools_called": tools_called,
+                    "tools_called": tools_called if 'tools_called' in locals() else [],
                     "response_length": 0,
                     "success": False,
                     "error_message": error_message,
@@ -1756,7 +1758,7 @@ async def handle_user_message(websocket: WebSocket, user_message: str):
                         "error_type": type(e).__name__
                     }
                 }
-                await client.post(api_url, params=params)
+                await client.post(api_url, json=json_data)
         except Exception as db_error:
             logger.warning(f"Failed to store error in database: {db_error}")
         

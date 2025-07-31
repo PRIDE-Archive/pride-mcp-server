@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Query, Depends
+from fastapi import APIRouter, HTTPException, Query, Depends, Body
 from fastapi.responses import JSONResponse
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta
@@ -112,15 +112,15 @@ async def get_daily_analytics(
 
 @api_router.post("/questions")
 async def store_question(
-    question: str,
-    user_id: Optional[str] = None,
-    session_id: Optional[str] = None,
-    response_time_ms: Optional[int] = None,
-    tools_called: Optional[List[str]] = None,
-    response_length: Optional[int] = None,
-    success: bool = True,
-    error_message: Optional[str] = None,
-    metadata: Optional[Dict[str, Any]] = None
+    question: str = Body(..., description="The question text"),
+    user_id: Optional[str] = Body(None, description="User ID"),
+    session_id: Optional[str] = Body(None, description="Session ID"),
+    response_time_ms: Optional[int] = Body(None, description="Response time in milliseconds"),
+    tools_called: Optional[List[str]] = Body(None, description="List of tools called"),
+    response_length: Optional[int] = Body(None, description="Length of the response"),
+    success: bool = Body(True, description="Whether the request was successful"),
+    error_message: Optional[str] = Body(None, description="Error message if any"),
+    metadata: Optional[Dict[str, Any]] = Body(None, description="Additional metadata")
 ):
     """Store a question in the database."""
     try:

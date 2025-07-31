@@ -98,6 +98,10 @@ spec:
               value: "http://127.0.0.1:9001"
             - name: LOG_LEVEL
               value: "INFO"
+            - name: PYTHONUNBUFFERED
+              value: "1"
+            - name: PYTHONPATH
+              value: "/app:/app/mcp_client_tools/src"
             - name: GEMINI_API_KEY
               valueFrom:
                 secretKeyRef:
@@ -118,14 +122,33 @@ spec:
               memory: "512Mi"
               cpu: "500m"
           livenessProbe:
-            tcpSocket:
+            httpGet:
+              path: /health
               port: 9000
             initialDelaySeconds: 180
             periodSeconds: 60
             timeoutSeconds: 15
             failureThreshold: 3
+          startupProbe:
+            exec:
+              command:
+              - /bin/sh
+              - -c
+              - "sleep 30 && python health_check.py"
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 20
+          lifecycle:
+            postStart:
+              exec:
+                command:
+                - /bin/sh
+                - -c
+                - "echo 'Container started, waiting for services...' && sleep 10"
           readinessProbe:
-            tcpSocket:
+            httpGet:
+              path: /health
               port: 9000
             initialDelaySeconds: 120
             periodSeconds: 30
@@ -203,4 +226,67 @@ spec:
       targetPort: 8080
       name: analytics
   type: NodePort
- 
+---
+# Internal Kubernetes Ingress for path-based routing
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: $app_name-ingress
+  namespace: $k8s_namespace
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    # Path rewriting for internal routing
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    # CORS headers for web UI
+    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization"
+spec:
+  rules:
+  # Catch-all rule for internal routing
+  - http:
+      paths:
+
+      # MCP Server - routes /pride/services/pride-mcp/mcp/* to MCP service
+      - path: /pride/services/pride-mcp/mcp(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: $app_name-mcp-service
+            port:
+              number: 9001
+      # Web UI - routes /pride/services/pride-mcp/ui/* to UI service  
+      - path: /pride/services/pride-mcp/ui(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: $app_name-ui-service
+            port:
+              number: 9090
+      # Analytics Dashboard - routes /pride/services/pride-mcp/analytics/* to analytics service
+      - path: /pride/services/pride-mcp/analytics(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: $app_name-analytics-service
+            port:
+              number: 8080
+      # API endpoints - routes /pride/services/pride-mcp/api/* to API service
+      - path: /pride/services/pride-mcp/api(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: $app_name-api-service
+            port:
+              number: 9000
+      # Root path - redirects to UI
+      - path: /pride/services/pride-mcp(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: $app_name-ui-service
+            port:
+              number: 9090 
