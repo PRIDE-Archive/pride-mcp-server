@@ -11,6 +11,34 @@ import os
 import threading
 from pathlib import Path
 
+def check_port_in_use(port):
+    """Check if a port is already in use."""
+    import socket
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind(('0.0.0.0', port))
+            return False
+    except OSError:
+        return True
+
+def kill_process_on_port(port):
+    """Kill any process using the specified port."""
+    try:
+        import subprocess
+        # Find process using the port
+        result = subprocess.run(['lsof', '-ti', f':{port}'], capture_output=True, text=True)
+        if result.stdout.strip():
+            pids = result.stdout.strip().split('\n')
+            for pid in pids:
+                if pid:
+                    print(f"🔄 Killing process {pid} on port {port}")
+                    subprocess.run(['kill', '-9', pid], check=False)
+            time.sleep(1)  # Give time for process to be killed
+            return True
+    except Exception as e:
+        print(f"⚠️  Could not kill process on port {port}: {e}")
+    return False
+
 def print_output(process, prefix):
     """Consume process output to prevent blocking."""
     for line in iter(process.stdout.readline, ''):
@@ -36,6 +64,13 @@ def load_env_config():
 def start_api_server():
     """Start the PRIDE API server."""
     print("🚀 Starting PRIDE API Server...")
+    
+    # Check if port 9000 is already in use
+    if check_port_in_use(9000):
+        print("⚠️  Port 9000 is already in use. Attempting to kill existing process...")
+        kill_process_on_port(9000)
+        time.sleep(2)  # Wait for port to be freed
+    
     try:
         # Start the API server with real-time output
         api_process = subprocess.Popen([
@@ -46,10 +81,8 @@ def start_api_server():
         api_output_thread = threading.Thread(target=print_output, args=(api_process, "API"), daemon=True)
         api_output_thread.start()
         
-
-        
         # Wait a moment for server to start
-        time.sleep(3)
+        time.sleep(5)
         
         if api_process.poll() is None:
             print("✅ PRIDE API Server started successfully on http://0.0.0.0:9000")
@@ -65,6 +98,13 @@ def start_api_server():
 def start_mcp_server():
     """Start the PRIDE MCP server."""
     print("🚀 Starting PRIDE MCP Server...")
+    
+    # Check if port 9001 is already in use
+    if check_port_in_use(9001):
+        print("⚠️  Port 9001 is already in use. Attempting to kill existing process...")
+        kill_process_on_port(9001)
+        time.sleep(2)  # Wait for port to be freed
+    
     try:
         # Start the MCP server with real-time output
         mcp_process = subprocess.Popen([
@@ -75,10 +115,8 @@ def start_mcp_server():
         mcp_output_thread = threading.Thread(target=print_output, args=(mcp_process, "MCP"), daemon=True)
         mcp_output_thread.start()
         
-
-        
         # Wait a moment for server to start
-        time.sleep(3)
+        time.sleep(5)
         
         if mcp_process.poll() is None:
             print("✅ PRIDE MCP Server started successfully on http://0.0.0.0:9001")
@@ -94,6 +132,13 @@ def start_mcp_server():
 def start_web_ui():
     """Start the web UI from the client module."""
     print("🌐 Starting Professional UI...")
+    
+    # Check if port 9090 is already in use
+    if check_port_in_use(9090):
+        print("⚠️  Port 9090 is already in use. Attempting to kill existing process...")
+        kill_process_on_port(9090)
+        time.sleep(2)  # Wait for port to be freed
+    
     try:
         # Try to install the client module in development mode first
         client_dir = Path("mcp_client_tools")
@@ -115,10 +160,8 @@ def start_web_ui():
         web_output_thread = threading.Thread(target=print_output, args=(web_process, "UI"), daemon=True)
         web_output_thread.start()
         
-
-        
         # Wait a moment for UI to start
-        time.sleep(3)
+        time.sleep(5)
         
         if web_process.poll() is None:
             print("✅ Professional UI started successfully on http://0.0.0.0:9090")
@@ -134,6 +177,13 @@ def start_web_ui():
 def start_analytics_ui():
     """Start the analytics dashboard."""
     print("📊 Starting Analytics Dashboard...")
+    
+    # Check if port 8080 is already in use
+    if check_port_in_use(8080):
+        print("⚠️  Port 8080 is already in use. Attempting to kill existing process...")
+        kill_process_on_port(8080)
+        time.sleep(2)  # Wait for port to be freed
+    
     try:
         # Start the analytics server
         analytics_process = subprocess.Popen([
@@ -141,10 +191,12 @@ def start_analytics_ui():
             "--port", "8080"
         ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1, universal_newlines=True)
         
-
+        # Start a thread to read and display output in real-time
+        analytics_output_thread = threading.Thread(target=print_output, args=(analytics_process, "Analytics"), daemon=True)
+        analytics_output_thread.start()
         
         # Wait a moment for analytics to start
-        time.sleep(3)
+        time.sleep(5)
         
         if analytics_process.poll() is None:
             print("✅ Analytics Dashboard started successfully on http://0.0.0.0:8080")
@@ -156,6 +208,31 @@ def start_analytics_ui():
     except Exception as e:
         print(f"❌ Error starting Analytics Dashboard: {e}")
         return None
+
+def verify_services():
+    """Verify all services are running."""
+    print("\n🔍 Verifying all services are running...")
+    services = [
+        (9000, "API Server"),
+        (9001, "MCP Server"),
+        (9090, "UI Server"),
+        (8080, "Analytics Server")
+    ]
+    
+    all_running = True
+    for port, name in services:
+        if check_port_in_use(port):
+            print(f"✅ {name} is running on port {port}")
+        else:
+            print(f"❌ {name} is NOT running on port {port}")
+            all_running = False
+    
+    if all_running:
+        print("🎉 All services are running successfully!")
+    else:
+        print("⚠️  Some services failed to start!")
+    
+    return all_running
 
 def signal_handler(signum, frame):
     """Handle shutdown signals."""
@@ -210,6 +287,9 @@ def main():
     analytics_process = start_analytics_ui()
     if not analytics_process:
         print("⚠️  Failed to start Analytics Dashboard. Other services are still running.")
+    
+    # Verify all services are running
+    verify_services()
     
     print("\n🎉 Services started successfully!")
     print("📋 Service URLs:")
