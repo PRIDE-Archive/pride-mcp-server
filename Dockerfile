@@ -1,6 +1,18 @@
 # Use Python 3.11 slim image
 FROM python:3.11-slim
 
+# Set proxy environment variables for build (configurable via GitLab CI/CD variables)
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+ARG NO_PROXY
+ARG http_proxy
+ARG https_proxy
+ENV HTTP_PROXY=$HTTP_PROXY
+ENV HTTPS_PROXY=$HTTPS_PROXY
+ENV NO_PROXY=$NO_PROXY
+ENV http_proxy=$http_proxy
+ENV https_proxy=$https_proxy
+
 # Set working directory
 WORKDIR /app
 
@@ -15,8 +27,12 @@ RUN pip install uv
 # Copy dependency files
 COPY pyproject.toml uv.lock ./
 
-# Install dependencies
-RUN uv sync --frozen
+# Install dependencies with retry and longer timeout
+RUN uv sync --frozen --timeout 300 || \
+    (echo "First attempt failed, retrying..." && sleep 10 && uv sync --frozen --timeout 300) || \
+    (echo "Second attempt failed, retrying..." && sleep 30 && uv sync --frozen --timeout 300)
+
+}
 
 # Copy application code
 COPY . .

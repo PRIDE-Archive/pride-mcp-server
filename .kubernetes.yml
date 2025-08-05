@@ -102,6 +102,17 @@ spec:
               value: "1"
             - name: PYTHONPATH
               value: "/app:/app/mcp_client_tools/src"
+            # Proxy configuration for internet access (configurable via GitLab CI/CD variables)
+            - name: HTTP_PROXY
+              value: "$HTTP_PROXY"
+            - name: HTTPS_PROXY
+              value: "$HTTPS_PROXY"
+            - name: http_proxy
+              value: "$http_proxy"
+            - name: https_proxy
+              value: "$https_proxy"
+            - name: NO_PROXY
+              value: "$NO_PROXY"
             - name: GEMINI_API_KEY
               valueFrom:
                 secretKeyRef:
