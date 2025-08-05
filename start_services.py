@@ -25,16 +25,67 @@ def kill_process_on_port(port):
     """Kill any process using the specified port."""
     try:
         import subprocess
-        # Find process using the port
-        result = subprocess.run(['lsof', '-ti', f':{port}'], capture_output=True, text=True)
-        if result.stdout.strip():
-            pids = result.stdout.strip().split('\n')
+        import os
+        
+        # Try to find process using the port with different methods
+        pids = []
+        
+        # Method 1: Try lsof if available
+        try:
+            result = subprocess.run(['lsof', '-ti', f':{port}'], capture_output=True, text=True)
+            if result.stdout.strip():
+                pids.extend(result.stdout.strip().split('\n'))
+        except FileNotFoundError:
+            pass
+        
+        # Method 2: Try netstat if available
+        try:
+            result = subprocess.run(['netstat', '-tlnp'], capture_output=True, text=True)
+            for line in result.stdout.split('\n'):
+                if f':{port}' in line and 'LISTEN' in line:
+                    # Extract PID from netstat output
+                    parts = line.split()
+                    if len(parts) > 6:
+                        pid_part = parts[6]
+                        if '/' in pid_part:
+                            pid = pid_part.split('/')[0]
+                            if pid.isdigit():
+                                pids.append(pid)
+        except FileNotFoundError:
+            pass
+        
+        # Method 3: Try ss if available
+        try:
+            result = subprocess.run(['ss', '-tlnp'], capture_output=True, text=True)
+            for line in result.stdout.split('\n'):
+                if f':{port}' in line and 'LISTEN' in line:
+                    # Extract PID from ss output
+                    if 'pid=' in line:
+                        pid_start = line.find('pid=') + 4
+                        pid_end = line.find(',', pid_start)
+                        if pid_end == -1:
+                            pid_end = line.find(' ', pid_start)
+                        if pid_end != -1:
+                            pid = line[pid_start:pid_end]
+                            if pid.isdigit():
+                                pids.append(pid)
+        except FileNotFoundError:
+            pass
+        
+        # Kill found processes
+        if pids:
             for pid in pids:
-                if pid:
+                if pid and pid.isdigit():
                     print(f"🔄 Killing process {pid} on port {port}")
-                    subprocess.run(['kill', '-9', pid], check=False)
+                    try:
+                        os.kill(int(pid), 9)  # SIGKILL
+                    except (OSError, ValueError):
+                        pass  # Process might already be dead
             time.sleep(1)  # Give time for process to be killed
             return True
+        else:
+            print(f"⚠️  No process found using port {port}")
+            return False
     except Exception as e:
         print(f"⚠️  Could not kill process on port {port}: {e}")
     return False
@@ -67,7 +118,18 @@ def start_api_server():
     
     # Check if port 9000 is already in use
     if check_port_in_use(9000):
-        print("⚠️  Port 9000 is already in use. Attempting to kill existing process...")
+        print("⚠️  Port 9000 is already in use. Checking if it's our own server...")
+        # Try to connect to the existing server to see if it's working
+        try:
+            import urllib.request
+            response = urllib.request.urlopen('http://localhost:9000/health', timeout=5)
+            if response.getcode() == 200:
+                print("✅ API Server is already running and responding on http://0.0.0.0:9000")
+                return None  # Server is already running
+        except:
+            pass
+        
+        print("⚠️  Attempting to kill existing process...")
         kill_process_on_port(9000)
         time.sleep(2)  # Wait for port to be freed
     
@@ -101,7 +163,18 @@ def start_mcp_server():
     
     # Check if port 9001 is already in use
     if check_port_in_use(9001):
-        print("⚠️  Port 9001 is already in use. Attempting to kill existing process...")
+        print("⚠️  Port 9001 is already in use. Checking if it's our own server...")
+        # Try to connect to the existing server to see if it's working
+        try:
+            import urllib.request
+            response = urllib.request.urlopen('http://localhost:9001/health', timeout=5)
+            if response.getcode() == 200:
+                print("✅ MCP Server is already running and responding on http://0.0.0.0:9001")
+                return None  # Server is already running
+        except:
+            pass
+        
+        print("⚠️  Attempting to kill existing process...")
         kill_process_on_port(9001)
         time.sleep(2)  # Wait for port to be freed
     
@@ -135,7 +208,18 @@ def start_web_ui():
     
     # Check if port 9090 is already in use
     if check_port_in_use(9090):
-        print("⚠️  Port 9090 is already in use. Attempting to kill existing process...")
+        print("⚠️  Port 9090 is already in use. Checking if it's our own server...")
+        # Try to connect to the existing server to see if it's working
+        try:
+            import urllib.request
+            response = urllib.request.urlopen('http://localhost:9090/', timeout=5)
+            if response.getcode() == 200:
+                print("✅ Web UI is already running and responding on http://0.0.0.0:9090")
+                return None  # Server is already running
+        except:
+            pass
+        
+        print("⚠️  Attempting to kill existing process...")
         kill_process_on_port(9090)
         time.sleep(2)  # Wait for port to be freed
     
@@ -180,7 +264,18 @@ def start_analytics_ui():
     
     # Check if port 8080 is already in use
     if check_port_in_use(8080):
-        print("⚠️  Port 8080 is already in use. Attempting to kill existing process...")
+        print("⚠️  Port 8080 is already in use. Checking if it's our own server...")
+        # Try to connect to the existing server to see if it's working
+        try:
+            import urllib.request
+            response = urllib.request.urlopen('http://localhost:8080/', timeout=5)
+            if response.getcode() == 200:
+                print("✅ Analytics Dashboard is already running and responding on http://0.0.0.0:8080")
+                return None  # Server is already running
+        except:
+            pass
+        
+        print("⚠️  Attempting to kill existing process...")
         kill_process_on_port(8080)
         time.sleep(2)  # Wait for port to be freed
     
