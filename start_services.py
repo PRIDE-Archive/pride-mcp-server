@@ -224,21 +224,39 @@ def start_web_ui():
         time.sleep(2)  # Wait for port to be freed
     
     try:
-        # Try to install the client module in development mode first
+        # Check if the client module exists
         client_dir = Path("mcp_client_tools")
         if not client_dir.exists():
             print("❌ Client module not found. Please ensure mcp_client_tools directory exists.")
             return None
         
+        # Check if the professional_ui module is available
+        try:
+            import mcp_client_tools.professional_ui
+            print("✅ Professional UI module found")
+        except ImportError:
+            print("❌ Professional UI module not available. Trying to install...")
+            # Try to install the module
+            try:
+                subprocess.run([sys.executable, "-m", "pip", "install", "-e", str(client_dir)], check=True)
+                print("✅ Client module installed successfully")
+            except subprocess.CalledProcessError:
+                print("❌ Failed to install client module")
+                return None
+        
         # Start the professional UI directly with real-time output
         env = os.environ.copy()
         env['PYTHONPATH'] = f"{client_dir}/src:{env.get('PYTHONPATH', '')}"
         
+        # Use the MCP server URL from environment or default to localhost
+        mcp_server_url = os.environ.get('MCP_SERVER_URL', 'http://127.0.0.1:9001')
+        
         web_process = subprocess.Popen([
             sys.executable, "-m", "mcp_client_tools.professional_ui", 
-            "--server-url", "http://0.0.0.0:9001",
-            "--port", "9090"
-        ], cwd=client_dir, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env, bufsize=1, universal_newlines=True)
+            "--server-url", mcp_server_url,
+            "--port", "9090",
+            "--host", "0.0.0.0"
+        ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env, bufsize=1, universal_newlines=True)
         
         # Start a thread to read and display output in real-time
         web_output_thread = threading.Thread(target=print_output, args=(web_process, "UI"), daemon=True)
@@ -280,10 +298,17 @@ def start_analytics_ui():
         time.sleep(2)  # Wait for port to be freed
     
     try:
-        # Start the analytics server
+        # Check if the analytics file exists
+        analytics_file = Path("serve_analytics.py")
+        if not analytics_file.exists():
+            print("❌ Analytics file not found: serve_analytics.py")
+            return None
+        
+        # Start the analytics server with proper arguments
         analytics_process = subprocess.Popen([
             sys.executable, "serve_analytics.py",
-            "--port", "8080"
+            "--port", "8080",
+            "--host", "0.0.0.0"
         ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1, universal_newlines=True)
         
         # Start a thread to read and display output in real-time
@@ -380,13 +405,19 @@ def main():
     
     # Start Professional UI
     web_process = start_web_ui()
-    if not web_process:
-        print("⚠️  Failed to start Professional UI. MCP server is still running.")
+    if web_process is None:
+        print("✅ Web UI is already running or was started successfully")
+        web_process = None  # Ensure it's None for later checks
+    elif not web_process:
+        print("⚠️  Failed to start Professional UI. Other services are still running.")
         print("   You can access the MCP server directly at http://0.0.0.0:9001")
     
     # Start Analytics Dashboard
     analytics_process = start_analytics_ui()
-    if not analytics_process:
+    if analytics_process is None:
+        print("✅ Analytics Dashboard is already running or was started successfully")
+        analytics_process = None  # Ensure it's None for later checks
+    elif not analytics_process:
         print("⚠️  Failed to start Analytics Dashboard. Other services are still running.")
     
     # Verify all services are running

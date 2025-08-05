@@ -84,7 +84,7 @@ spec:
               name: ui
             - containerPort: 8080
               name: analytics
-          command: ["uv", "run", "python", "start_kubernetes.py"]
+
           volumeMounts:
             - name: database-storage
               mountPath: /app/data

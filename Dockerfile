@@ -30,11 +30,11 @@ RUN useradd --create-home --shell /bin/bash app && \
 USER app
 
 # Expose ports
-EXPOSE 9000 9090
+EXPOSE 9000 9001 9090 8080
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:9000/mcp/ || exit 1
+    CMD curl -f http://localhost:9000/health || exit 1
 
-# Start both servers using the Kubernetes startup script
-CMD ["uv", "run", "python", "start_kubernetes.py"] 
+# Start all services using the main startup script
+CMD ["uv", "run", "python", "start_services.py"] 
