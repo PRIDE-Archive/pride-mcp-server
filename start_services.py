@@ -348,13 +348,19 @@ def main():
     
     # Start API server
     api_process = start_api_server()
-    if not api_process:
+    if api_process is None:
+        print("✅ API server is already running")
+        api_process = None  # Ensure it's None for later checks
+    elif not api_process:
         print("❌ Failed to start API server. Exiting.")
         sys.exit(1)
     
     # Start MCP server
     mcp_process = start_mcp_server()
-    if not mcp_process:
+    if mcp_process is None:
+        print("✅ MCP server is already running")
+        mcp_process = None  # Ensure it's None for later checks
+    elif not mcp_process:
         print("❌ Failed to start MCP server. Exiting.")
         sys.exit(1)
     
@@ -402,11 +408,11 @@ def main():
             time.sleep(1)
             
             # Check if processes are still running
-            if api_process.poll() is not None:
+            if api_process and api_process.poll() is not None:
                 print("❌ API server stopped unexpectedly")
                 break
                 
-            if mcp_process.poll() is not None:
+            if mcp_process and mcp_process.poll() is not None:
                 print("❌ MCP server stopped unexpectedly")
                 break
                 
