@@ -27,10 +27,10 @@ RUN pip install uv
 # Copy dependency files
 COPY pyproject.toml uv.lock ./
 
-# Install dependencies with retry and longer timeout
-RUN uv sync --frozen --timeout 300 || \
-    (echo "First attempt failed, retrying..." && sleep 10 && uv sync --frozen --timeout 300) || \
-    (echo "Second attempt failed, retrying..." && sleep 30 && uv sync --frozen --timeout 300)
+# Install dependencies with retry logic
+RUN uv sync --frozen || \
+    (echo "First attempt failed, retrying..." && sleep 10 && uv sync --frozen) || \
+    (echo "Second attempt failed, retrying..." && sleep 30 && uv sync --frozen)
 
 # Copy application code
 COPY . .
