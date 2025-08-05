@@ -236,13 +236,18 @@ def start_web_ui():
             print("✅ Professional UI module found")
         except ImportError:
             print("❌ Professional UI module not available. Trying to install...")
-            # Try to install the module
+            # Try to install the module using uv (which is available in the container)
             try:
-                subprocess.run([sys.executable, "-m", "pip", "install", "-e", str(client_dir)], check=True)
+                subprocess.run(["uv", "pip", "install", "-e", str(client_dir)], check=True)
                 print("✅ Client module installed successfully")
-            except subprocess.CalledProcessError:
-                print("❌ Failed to install client module")
-                return None
+            except (subprocess.CalledProcessError, FileNotFoundError):
+                print("❌ Failed to install client module with uv, trying pip...")
+                try:
+                    subprocess.run([sys.executable, "-m", "pip", "install", "-e", str(client_dir)], check=True)
+                    print("✅ Client module installed successfully with pip")
+                except subprocess.CalledProcessError:
+                    print("❌ Failed to install client module")
+                    return None
         
         # Start the professional UI directly with real-time output
         env = os.environ.copy()

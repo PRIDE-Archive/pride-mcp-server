@@ -21,6 +21,9 @@ RUN uv sync --frozen
 # Copy application code
 COPY . .
 
+# Install the client module in development mode
+RUN uv pip install -e ./mcp_client_tools
+
 # Create data directory for persistent storage
 RUN mkdir -p /app/data
 
