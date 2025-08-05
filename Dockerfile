@@ -32,8 +32,6 @@ RUN uv sync --frozen --timeout 300 || \
     (echo "First attempt failed, retrying..." && sleep 10 && uv sync --frozen --timeout 300) || \
     (echo "Second attempt failed, retrying..." && sleep 30 && uv sync --frozen --timeout 300)
 
-}
-
 # Copy application code
 COPY . .
 
