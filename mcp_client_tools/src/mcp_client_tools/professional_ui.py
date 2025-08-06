@@ -37,9 +37,19 @@ def load_env_config():
 # Load environment variables
 load_env_config()
 
-from .client import MCPClient
-from .tools import PRIDE_EBI_TOOLS
-from .ai_conversational_ui import AIService
+try:
+    from .client import MCPClient
+except ImportError:
+    from mcp_client_tools.client import MCPClient
+try:
+    from .tools import PRIDE_EBI_TOOLS
+except ImportError:
+    from mcp_client_tools.tools import PRIDE_EBI_TOOLS
+
+try:
+    from .ai_conversational_ui import AIService
+except ImportError:
+    from mcp_client_tools.ai_conversational_ui import AIService
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)

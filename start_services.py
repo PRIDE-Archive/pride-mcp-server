@@ -257,7 +257,7 @@ def start_web_ui():
         mcp_server_url = os.environ.get('MCP_SERVER_URL', 'http://127.0.0.1:9001')
         
         web_process = subprocess.Popen([
-            sys.executable, "-m", "mcp_client_tools.professional_ui", 
+            sys.executable, f"{client_dir}/src/mcp_client_tools/professional_ui.py", 
             "--server-url", mcp_server_url,
             "--port", "9090",
             "--host", "0.0.0.0"

@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 def main():
     """Start the MCP server on port 9001."""
     try:
-        # Create the MCP app
+        # Create the MCP app directly
         mcp_app = streamable_http_app()
         logger.info(f"✅ MCP app created successfully with {len(mcp_app.routes)} routes")
         
@@ -24,7 +24,7 @@ def main():
         print("   MCP Endpoint: http://0.0.0.0:9001/")
         print("   Log Level: INFO")
         
-        # Start the MCP server
+        # Start the MCP server directly
         uvicorn.run(
             mcp_app, 
             host="0.0.0.0", 
