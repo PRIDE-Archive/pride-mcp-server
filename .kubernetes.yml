@@ -95,7 +95,7 @@ spec:
             - name: MCP_SERVER_PORT
               value: "9001"
             - name: MCP_SERVER_URL
-              value: "http://127.0.0.1:9001"
+              value: "http://127.0.0.1:9001/mcp/"
             - name: LOG_LEVEL
               value: "INFO"
             - name: PYTHONUNBUFFERED

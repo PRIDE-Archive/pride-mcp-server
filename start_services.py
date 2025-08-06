@@ -254,7 +254,8 @@ def start_web_ui():
         env['PYTHONPATH'] = f"{client_dir}/src:{env.get('PYTHONPATH', '')}"
         
         # Use the MCP server URL from environment or default to localhost
-        mcp_server_url = os.environ.get('MCP_SERVER_URL', 'http://127.0.0.1:9001')
+        # In Kubernetes, the UI should connect to MCP server via ingress
+        mcp_server_url = os.environ.get('MCP_SERVER_URL', 'http://127.0.0.1:9001/mcp/')
         
         web_process = subprocess.Popen([
             sys.executable, f"{client_dir}/src/mcp_client_tools/professional_ui.py", 

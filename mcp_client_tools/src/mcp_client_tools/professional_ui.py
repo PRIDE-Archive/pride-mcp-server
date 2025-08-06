@@ -1166,16 +1166,18 @@ async def home(request: Request):
         # User is accessing locally - show localhost MCP URL
         display_url = f"http://{request_host.replace(':9090', ':9001')}/mcp/"
     else:
-        # User is accessing via direct NodePort - show NodePort MCP URL
+        # User is accessing via NodePort - show NodePort MCP URL
         # Extract the host and port from the request
         if ':' in request_host:
             host_part = request_host.split(':')[0]
             port_part = request_host.split(':')[1]
-            # Map UI port to MCP port (9090 -> 31188)
+            # Map UI port to MCP port based on current NodePort configuration
             if port_part == '9090':
                 mcp_port = '31188'
             elif port_part == '31429':  # NodePort for UI
                 mcp_port = '31188'      # NodePort for MCP
+            elif port_part == '32378':  # NodePort for UI
+                mcp_port = '31188'      # NodePort for MCP (not ingress)
             else:
                 mcp_port = '31188'  # Default MCP NodePort
             display_url = f"http://{host_part}:{mcp_port}/mcp/"
