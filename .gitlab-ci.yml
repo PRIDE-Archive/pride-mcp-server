@@ -22,7 +22,7 @@ docker_build:
     - cat Dockerfile
     - echo $CI_REGISTRY_IMAGE $CI_COMMIT_REF_SLUG $CI_COMMIT_SHA
     - docker --debug info
-    - docker build -t $IMAGE .
+    - docker build --build-arg HTTP_PROXY=$HTTP_PROXY --build-arg HTTPS_PROXY=$HTTPS_PROXY --build-arg http_proxy=$http_proxy --build-arg https_proxy=$https_proxy --build-arg NO_PROXY=$NO_PROXY -t $IMAGE .
     - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
     - docker push $IMAGE
   when: manual
