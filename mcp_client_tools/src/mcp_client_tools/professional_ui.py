@@ -39,131 +39,7 @@ load_env_config()
 
 from .client import MCPClient
 from .tools import PRIDE_EBI_TOOLS
-# AIService moved to inline implementation to avoid importing conversational UI
-class AIService:
-    def __init__(self):
-        self.api_key = os.getenv("GEMINI_API_KEY") or os.getenv("OPENAI_API_KEY") or os.getenv("CLAUDE_API_KEY")
-        self.provider = "gemini" if os.getenv("GEMINI_API_KEY") else "openai" if os.getenv("OPENAI_API_KEY") else "claude"
-        self.demo_mode = not bool(self.api_key)
-        
-        # Initialize LLM client if API key is available
-        if not self.demo_mode:
-            if self.provider == "gemini":
-                try:
-                    import google.generativeai as genai
-                    genai.configure(api_key=self.api_key)
-                    # Use the correct model name for Gemini API v1beta
-                    self.model = genai.GenerativeModel('gemini-1.5-pro')
-                    logger.info("✅ Gemini AI initialized with gemini-1.5-pro")
-                except ImportError:
-                    logger.warning("❌ google-generativeai not installed, falling back to demo mode")
-                    self.demo_mode = True
-            elif self.provider == "openai":
-                try:
-                    import openai
-                    self.client = openai.OpenAI(api_key=self.api_key)
-                    logger.info("✅ OpenAI initialized")
-                except ImportError:
-                    logger.warning("❌ openai not installed, falling back to demo mode")
-                    self.demo_mode = True
-            else:
-                logger.warning(f"❌ Provider {self.provider} not implemented, falling back to demo mode")
-                self.demo_mode = True
-        else:
-            logger.warning("⚠️ No API key found, using demo mode with basic responses")
-    
-    def analyze_question(self, user_question: str, available_tools: List[Dict]) -> Dict[str, Any]:
-        """Use AI to analyze user question and determine which tools to call."""
-        
-        if self.demo_mode:
-            raise ValueError("No API key provided. Please set GEMINI_API_KEY, OPENAI_API_KEY, or CLAUDE_API_KEY environment variable.")
-        
-        # Use actual LLM for intelligent analysis
-        prompt = f"""
-You are an AI assistant that helps users search PRIDE Archive proteomics data.
-The user asked: "{user_question}"
-
-Available tools:
-{json.dumps(available_tools, indent=2)}
-
-Your task is to:
-1. Understand what the user wants
-2. Decide which tool(s) to call
-3. Extract the right parameters
-
-IMPORTANT RULES:
-- ALWAYS call get_pride_facets FIRST to determine available filters for any search
-- Use the keyword from the user's question to search facets: get_pride_facets(keyword="user_keyword")
-- After getting facets, call fetch_projects with appropriate filters based on the facet results
-- For questions like "Find X studies", "Show me Y projects", "Search for Z": 
-  1. Call get_pride_facets(keyword="X") to find matching filters
-  2. Call fetch_projects(keyword="X", filters="matching_filters_from_facets")
-  3. Call get_project_details(project_accession="project_accession") to get the project details for top 3 projects to generate synopsis
-- For questions like "What organisms are available?", "What filters can I use?": call get_pride_facets only
-- When searching for specific organisms (mouse, human, etc.), use the organism name in both facet and project searches
-- The facets will help identify the exact filter values to use for more precise searches
-
-CRITICAL: For metadata questions about what's available, ONLY call get_pride_facets:
-- "What organisms are available?" → ONLY get_pride_facets
-- "What organisms are available in pride archive?" → ONLY get_pride_facets  
-- "What filters can I use?" → ONLY get_pride_facets
-- "What diseases are available?" → ONLY get_pride_facets
-- "What instruments are available?" → ONLY get_pride_facets
-- "What software tools are commonly used?" → ONLY get_pride_facets
-- "What software tools are commonly used in PRIDE studies?" → ONLY get_pride_facets
-- "Show me what's available" → ONLY get_pride_facets
-- "List available data" → ONLY get_pride_facets
-- "What can I search for?" → ONLY get_pride_facets
-
-DO NOT call fetch_projects for metadata questions about available data.
-
-SPECIAL QUERY HANDLING:
-- For "top downloaded", "most popular", "highest downloads", "top 10 downloaded", etc.:
-  1. Call get_pride_facets(keyword="") to get all available filters
-  2. Call fetch_projects(keyword="", filters="", sort_fields="downloadCount", sort_direction="DESC")
-- For "top 10 downloaded project 2024", "most downloaded 2024", etc. (with year):
-  1. Call get_pride_facets(keyword="") to get all available filters including submissionDate
-  2. Call fetch_projects(keyword="", filters="submissionDate:2024", sort_fields="downloadCount", sort_direction="DESC")
-- For "2024 projects", "projects from 2024", etc.:
-  1. Call get_pride_facets(keyword="") to get all available filters
-  2. Call fetch_projects(keyword="", filters="submissionDate:2024")
-- For specific topics (cancer, mouse, human, MaxQuant, etc.), use those as keywords
-- For "MaxQuant projects", use keyword="MaxQuant"
-
-IMPORTANT: You must respond with ONLY a valid JSON object, no other text.
-
-Respond with a JSON object like this:
-{{
-    "intent": "what the user wants to do",
-    "tools_to_call": [
-        {{
-            "tool_name": "tool name",
-            "parameters": {{"param": "value"}},
-            "reasoning": "why this tool is needed"
-        }}
-    ],
-    "response_template": "how to respond to the user"
-}}
-"""
-        
-        try:
-            if self.provider == "gemini":
-                response = self.model.generate_content(prompt)
-                result = json.loads(response.text)
-            elif self.provider == "openai":
-                response = self.client.chat.completions.create(
-                    model="gpt-4",
-                    messages=[{"role": "user", "content": prompt}],
-                    temperature=0.1
-                )
-                result = json.loads(response.choices[0].message.content)
-            else:
-                raise ValueError(f"Provider {self.provider} not implemented")
-            
-            return result
-        except Exception as e:
-            logger.error(f"AI analysis failed: {e}")
-            raise ValueError(f"AI analysis failed: {e}")
+from .ai_conversational_ui import AIService
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -1261,13 +1137,41 @@ PROFESSIONAL_HTML_TEMPLATE = """
 """
 
 @app.get("/", response_class=HTMLResponse)
-async def home():
+async def home(request: Request):
     """Serve the professional web interface."""
     # Get the MCP server URL from the global variable or environment
     server_url = getattr(mcp_client, 'server_url', 'http://localhost:9001') if mcp_client else 'http://localhost:9001'
     
+    # Dynamically determine the display URL based on how the user is accessing the UI
+    request_url = str(request.url)
+    request_host = request.headers.get('host', 'localhost:9090')
+    
+    # Detect the access method and show appropriate MCP server URL
+    if '/pride/services/pride-mcp/ui' in request_url:
+        # User is accessing through ingress - show ingress MCP URL
+        display_url = request_url.replace('/pride/services/pride-mcp/ui', '/pride/services/pride-mcp/mcp')
+    elif 'localhost' in request_host or '127.0.0.1' in request_host:
+        # User is accessing locally - show localhost MCP URL
+        display_url = f"http://{request_host.replace(':9090', ':9001')}"
+    else:
+        # User is accessing via NodePort - show NodePort MCP URL
+        # Extract the host and port from the request
+        if ':' in request_host:
+            host_part = request_host.split(':')[0]
+            port_part = request_host.split(':')[1]
+            # Map UI port to MCP port (9090 -> 31188)
+            if port_part == '9090':
+                mcp_port = '31188'
+            elif port_part == '31429':  # NodePort for UI
+                mcp_port = '31188'      # NodePort for MCP
+            else:
+                mcp_port = '31188'  # Default MCP NodePort
+            display_url = f"http://{host_part}:{mcp_port}"
+        else:
+            display_url = f"http://{request_host}:31188"
+    
     # Replace the template variable
-    template_content = PROFESSIONAL_HTML_TEMPLATE.replace('{{ mcp_server_url }}', server_url)
+    template_content = PROFESSIONAL_HTML_TEMPLATE.replace('{{ mcp_server_url }}', display_url)
     return HTMLResponse(content=template_content)
 
 @app.get("/api/health")
