@@ -1156,7 +1156,7 @@ async def home(request: Request):
         # User is accessing locally - show localhost MCP URL
         display_url = f"http://{request_host.replace(':9090', ':9001')}/mcp/"
     else:
-        # User is accessing via NodePort - show NodePort MCP URL
+        # User is accessing via direct NodePort - show NodePort MCP URL
         # Extract the host and port from the request
         if ':' in request_host:
             host_part = request_host.split(':')[0]
