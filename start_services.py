@@ -91,11 +91,11 @@ def kill_process_on_port(port):
     return False
 
 def print_output(process, prefix):
-    """Consume process output to prevent blocking."""
+    """Consume process output and display it for debugging."""
     for line in iter(process.stdout.readline, ''):
         if line:
-            # Don't print anything - just consume the output to prevent blocking
-            pass
+            # Print the output with prefix for debugging
+            print(f"[{prefix}] {line.rstrip()}")
 
 def load_env_config():
     """Load environment variables from config.env file."""
