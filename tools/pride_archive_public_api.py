@@ -32,13 +32,9 @@ async def get_pride_facets(facet_page_size: int = 100, facet_page: int = 0, keyw
     
     try:
         # Get proxy configuration from environment
-        proxies = {}
-        if os.environ.get('HTTP_PROXY'):
-            proxies['http://'] = os.environ.get('HTTP_PROXY')
-        if os.environ.get('HTTPS_PROXY'):
-            proxies['https://'] = os.environ.get('HTTPS_PROXY')
+        proxy = os.environ.get('HTTPS_PROXY') or os.environ.get('HTTP_PROXY')
         
-        async with httpx.AsyncClient(timeout=10.0, proxies=proxies) as client:
+        async with httpx.AsyncClient(timeout=10.0, proxy=proxy) as client:
             response = await client.get(url, params=params)
             
             if response.status_code == 200:
@@ -153,13 +149,9 @@ async def fetch_projects(
     
     try:
         # Get proxy configuration from environment
-        proxies = {}
-        if os.environ.get('HTTP_PROXY'):
-            proxies['http://'] = os.environ.get('HTTP_PROXY')
-        if os.environ.get('HTTPS_PROXY'):
-            proxies['https://'] = os.environ.get('HTTPS_PROXY')
+        proxy = os.environ.get('HTTPS_PROXY') or os.environ.get('HTTP_PROXY')
         
-        async with httpx.AsyncClient(timeout=10.0, proxies=proxies) as client:
+        async with httpx.AsyncClient(timeout=10.0, proxy=proxy) as client:
             response = await client.get(url, params=params)
             
             if response.status_code == 200:
@@ -248,13 +240,9 @@ async def get_project_details(project_accession: str):
     url = f"https://www.ebi.ac.uk/pride/ws/archive/v3/projects/{project_accession}"
     
     # Get proxy configuration from environment
-    proxies = {}
-    if os.environ.get('HTTP_PROXY'):
-        proxies['http://'] = os.environ.get('HTTP_PROXY')
-    if os.environ.get('HTTPS_PROXY'):
-        proxies['https://'] = os.environ.get('HTTPS_PROXY')
+    proxy = os.environ.get('HTTPS_PROXY') or os.environ.get('HTTP_PROXY')
     
-    async with httpx.AsyncClient(timeout=10.0, proxies=proxies) as client:
+    async with httpx.AsyncClient(timeout=10.0, proxy=proxy) as client:
         response = await client.get(url)
         if response.status_code == 200:
             data = response.json()
@@ -318,13 +306,9 @@ async def get_project_files(project_accession: str, file_type: str = None):
         params["fileType"] = file_type
     
     # Get proxy configuration from environment
-    proxies = {}
-    if os.environ.get('HTTP_PROXY'):
-        proxies['http://'] = os.environ.get('HTTP_PROXY')
-    if os.environ.get('HTTPS_PROXY'):
-        proxies['https://'] = os.environ.get('HTTPS_PROXY')
+    proxy = os.environ.get('HTTPS_PROXY') or os.environ.get('HTTP_PROXY')
     
-    async with httpx.AsyncClient(timeout=10.0, proxies=proxies) as client:
+    async with httpx.AsyncClient(timeout=10.0, proxy=proxy) as client:
         response = await client.get(url, params=params)
         if response.status_code == 200:
             data = response.json()
