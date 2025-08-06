@@ -102,6 +102,12 @@ spec:
               value: "1"
             - name: PYTHONPATH
               value: "/app:/app/mcp_client_tools/src"
+            - name: UVICORN_LOG_LEVEL
+              value: "info"
+            - name: FASTAPI_LOG_LEVEL
+              value: "info"
+            - name: MCP_LOG_LEVEL
+              value: "info"
             # Proxy configuration for internet access (configurable via GitLab CI/CD variables)
             - name: HTTP_PROXY
               value: "$HTTP_PROXY"
@@ -154,7 +160,7 @@ spec:
                 command:
                 - /bin/sh
                 - -c
-                - "echo 'Container started, waiting for services...' && sleep 10"
+                - "echo 'Container started, waiting for services...' && echo 'Starting with enhanced logging...' && sleep 10"
           readinessProbe:
             httpGet:
               path: /health

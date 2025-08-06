@@ -1,0 +1,65 @@
+2025-08-06 17:28:20,247 - mcp.server.lowlevel.server - DEBUG - Initializing server 'pride_mcp_server'
+2025-08-06 17:28:20,247 - mcp.server.lowlevel.server - DEBUG - Registering handler for ListToolsRequest
+2025-08-06 17:28:20,247 - mcp.server.lowlevel.server - DEBUG - Registering handler for CallToolRequest
+2025-08-06 17:28:20,247 - mcp.server.lowlevel.server - DEBUG - Registering handler for ListResourcesRequest
+2025-08-06 17:28:20,247 - mcp.server.lowlevel.server - DEBUG - Registering handler for ReadResourceRequest
+2025-08-06 17:28:20,247 - mcp.server.lowlevel.server - DEBUG - Registering handler for PromptListRequest
+2025-08-06 17:28:20,247 - mcp.server.lowlevel.server - DEBUG - Registering handler for GetPromptRequest
+2025-08-06 17:28:20,247 - mcp.server.lowlevel.server - DEBUG - Registering handler for ListResourceTemplatesRequest
+2025-08-06 17:28:20,252 - __main__ - INFO - PRIDE MCP Server starting up
+2025-08-06 17:28:20,252 - __main__ - ERROR - ❌ Failed to start MCP server after 0.000s: 'FastMCP' object has no attribute 'tools'
+2025-08-06 17:29:53,709 - mcp.server.lowlevel.server - DEBUG - Initializing server 'pride_mcp_server'
+2025-08-06 17:29:53,709 - mcp.server.lowlevel.server - DEBUG - Registering handler for ListToolsRequest
+2025-08-06 17:29:53,709 - mcp.server.lowlevel.server - DEBUG - Registering handler for CallToolRequest
+2025-08-06 17:29:53,709 - mcp.server.lowlevel.server - DEBUG - Registering handler for ListResourcesRequest
+2025-08-06 17:29:53,709 - mcp.server.lowlevel.server - DEBUG - Registering handler for ReadResourceRequest
+2025-08-06 17:29:53,709 - mcp.server.lowlevel.server - DEBUG - Registering handler for PromptListRequest
+2025-08-06 17:29:53,709 - mcp.server.lowlevel.server - DEBUG - Registering handler for GetPromptRequest
+2025-08-06 17:29:53,709 - mcp.server.lowlevel.server - DEBUG - Registering handler for ListResourceTemplatesRequest
+2025-08-06 17:29:53,713 - __main__ - INFO - PRIDE MCP Server starting up
+2025-08-06 17:29:53,713 - tools.pride_archive_public_api - INFO - Creating MCP streamable HTTP app
+2025-08-06 17:29:53,713 - __main__ - INFO - ✅ MCP app created successfully with 1 routes
+2025-08-06 17:29:53,714 - __main__ - ERROR - ❌ Failed to start MCP server after 0.000s: 'Mount' object has no attribute 'methods'
+2025-08-06 17:30:21,168 - mcp.server.lowlevel.server - DEBUG - Initializing server 'pride_mcp_server'
+2025-08-06 17:30:21,168 - mcp.server.lowlevel.server - DEBUG - Registering handler for ListToolsRequest
+2025-08-06 17:30:21,168 - mcp.server.lowlevel.server - DEBUG - Registering handler for CallToolRequest
+2025-08-06 17:30:21,168 - mcp.server.lowlevel.server - DEBUG - Registering handler for ListResourcesRequest
+2025-08-06 17:30:21,169 - mcp.server.lowlevel.server - DEBUG - Registering handler for ReadResourceRequest
+2025-08-06 17:30:21,169 - mcp.server.lowlevel.server - DEBUG - Registering handler for PromptListRequest
+2025-08-06 17:30:21,169 - mcp.server.lowlevel.server - DEBUG - Registering handler for GetPromptRequest
+2025-08-06 17:30:21,169 - mcp.server.lowlevel.server - DEBUG - Registering handler for ListResourceTemplatesRequest
+2025-08-06 17:30:21,172 - __main__ - INFO - PRIDE MCP Server starting up
+2025-08-06 17:30:21,172 - tools.pride_archive_public_api - INFO - Creating MCP streamable HTTP app
+2025-08-06 17:30:21,172 - __main__ - INFO - ✅ MCP app created successfully with 1 routes
+2025-08-06 17:30:21,197 - mcp.server.streamable_http_manager - INFO - StreamableHTTP session manager started
+2025-08-06 17:30:21,199 - mcp.server.streamable_http_manager - INFO - StreamableHTTP session manager shutting down
+2025-08-06 17:31:18,526 - mcp.server.lowlevel.server - DEBUG - Initializing server 'pride_mcp_server'
+2025-08-06 17:31:18,527 - mcp.server.lowlevel.server - DEBUG - Registering handler for ListToolsRequest
+2025-08-06 17:31:18,527 - mcp.server.lowlevel.server - DEBUG - Registering handler for CallToolRequest
+2025-08-06 17:31:18,527 - mcp.server.lowlevel.server - DEBUG - Registering handler for ListResourcesRequest
+2025-08-06 17:31:18,527 - mcp.server.lowlevel.server - DEBUG - Registering handler for ReadResourceRequest
+2025-08-06 17:31:18,527 - mcp.server.lowlevel.server - DEBUG - Registering handler for PromptListRequest
+2025-08-06 17:31:18,527 - mcp.server.lowlevel.server - DEBUG - Registering handler for GetPromptRequest
+2025-08-06 17:31:18,527 - mcp.server.lowlevel.server - DEBUG - Registering handler for ListResourceTemplatesRequest
+2025-08-06 17:31:18,530 - __main__ - INFO - PRIDE MCP Server starting up
+2025-08-06 17:31:18,531 - tools.pride_archive_public_api - INFO - Creating MCP streamable HTTP app
+2025-08-06 17:31:18,531 - __main__ - INFO - ✅ MCP app created successfully with 1 routes
+2025-08-06 17:31:18,553 - mcp.server.streamable_http_manager - INFO - StreamableHTTP session manager started
+2025-08-06 17:31:24,756 - tools.pride_archive_public_api - INFO - HTTP Request - GET http://localhost:9001/health from 127.0.0.1
+2025-08-06 17:31:24,756 - tools.pride_archive_public_api - INFO - HTTP Response - 404 in 0.001s
+2025-08-06 17:31:34,485 - tools.pride_archive_public_api - INFO - HTTP Request - POST http://localhost:9001/tools/get_pride_facets from 127.0.0.1
+2025-08-06 17:31:34,485 - tools.pride_archive_public_api - INFO - HTTP Response - 404 in 0.001s
+2025-08-06 17:31:34,486 - tools.pride_archive_public_api - INFO - HTTP Request - POST http://localhost:9001/tools/fetch_projects from 127.0.0.1
+2025-08-06 17:31:34,487 - tools.pride_archive_public_api - INFO - HTTP Response - 404 in 0.000s
+2025-08-06 17:31:34,487 - tools.pride_archive_public_api - INFO - HTTP Request - POST http://localhost:9001/tools/get_project_details from 127.0.0.1
+2025-08-06 17:31:34,488 - tools.pride_archive_public_api - INFO - HTTP Response - 404 in 0.000s
+2025-08-06 17:31:34,489 - tools.pride_archive_public_api - INFO - HTTP Request - POST http://localhost:9001/tools/get_project_files from 127.0.0.1
+2025-08-06 17:31:34,489 - tools.pride_archive_public_api - INFO - HTTP Response - 404 in 0.000s
+2025-08-06 17:31:39,672 - tools.pride_archive_public_api - INFO - HTTP Request - GET http://localhost:9001/ from 127.0.0.1
+2025-08-06 17:31:39,672 - tools.pride_archive_public_api - INFO - HTTP Response - 404 in 0.000s
+2025-08-06 17:31:55,389 - tools.pride_archive_public_api - INFO - HTTP Request - GET http://localhost:9001/mcp/ from 127.0.0.1
+2025-08-06 17:31:55,389 - mcp.server.streamable_http_manager - DEBUG - Stateless mode: Creating new transport for this request
+2025-08-06 17:31:55,391 - tools.pride_archive_public_api - INFO - HTTP Response - 406 in 0.003s
+2025-08-06 17:39:37,606 - tools.pride_archive_public_api - INFO - HTTP Request - GET http://localhost:9001/mcp/ from 127.0.0.1
+2025-08-06 17:39:37,607 - mcp.server.streamable_http_manager - DEBUG - Stateless mode: Creating new transport for this request
+2025-08-06 17:39:37,610 - tools.pride_archive_public_api - INFO - HTTP Response - 406 in 0.004s
