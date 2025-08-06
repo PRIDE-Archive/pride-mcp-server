@@ -10,9 +10,18 @@ import time
 from datetime import datetime
 from tools.pride_archive_public_api import streamable_http_app
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
+# Configure logging with unbuffered output
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    force=True
+)
 logger = logging.getLogger(__name__)
+
+# Force unbuffered output
+import sys
+sys.stdout.reconfigure(line_buffering=True)
+sys.stderr.reconfigure(line_buffering=True)
 
 def log_server_startup():
     """Log server startup information"""

@@ -11,6 +11,10 @@ import os
 import threading
 from pathlib import Path
 
+# Force unbuffered output
+sys.stdout.reconfigure(line_buffering=True)
+sys.stderr.reconfigure(line_buffering=True)
+
 def check_port_in_use(port):
     """Check if a port is already in use."""
     import socket

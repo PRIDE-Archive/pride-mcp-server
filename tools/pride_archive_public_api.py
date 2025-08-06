@@ -7,12 +7,18 @@ import time
 from typing import Dict, Any, List
 from datetime import datetime
 
-# Configure logging for MCP server
+# Configure logging for MCP server with unbuffered output
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    force=True
 )
 logger = logging.getLogger(__name__)
+
+# Force unbuffered output
+import sys
+sys.stdout.reconfigure(line_buffering=True)
+sys.stderr.reconfigure(line_buffering=True)
 
 # Create MCP instance for tools
 mcp = FastMCP(name="pride_mcp_server", stateless_http=True)
