@@ -1148,11 +1148,12 @@ async def home(request: Request):
     
     # Detect the access method and show appropriate MCP server URL
     if '/pride/services/pride-mcp/ui' in request_url:
-        # User is accessing through ingress - show ingress MCP URL
-        display_url = request_url.replace('/pride/services/pride-mcp/ui', '/pride/services/pride-mcp/mcp')
+        # User is accessing through ingress - show NodePort MCP URL since ingress MCP is not working
+        host_part = request_host.split(':')[0] if ':' in request_host else request_host
+        display_url = f"http://{host_part}:31188/mcp/"
     elif 'localhost' in request_host or '127.0.0.1' in request_host:
         # User is accessing locally - show localhost MCP URL
-        display_url = f"http://{request_host.replace(':9090', ':9001')}"
+        display_url = f"http://{request_host.replace(':9090', ':9001')}/mcp/"
     else:
         # User is accessing via NodePort - show NodePort MCP URL
         # Extract the host and port from the request
@@ -1166,9 +1167,9 @@ async def home(request: Request):
                 mcp_port = '31188'      # NodePort for MCP
             else:
                 mcp_port = '31188'  # Default MCP NodePort
-            display_url = f"http://{host_part}:{mcp_port}"
+            display_url = f"http://{host_part}:{mcp_port}/mcp/"
         else:
-            display_url = f"http://{request_host}:31188"
+            display_url = f"http://{request_host}:31188/mcp/"
     
     # Replace the template variable
     template_content = PROFESSIONAL_HTML_TEMPLATE.replace('{{ mcp_server_url }}', display_url)
