@@ -12,4 +12,4 @@ __version__ = "0.1.0" # Define your module version
 from .client import MCPClient
 from .tools import PRIDE_EBI_TOOLS
 from .professional_ui import run_professional_ui
-from .ai_conversational_ui import AIService 
+# AIService moved to professional_ui.py to avoid importing conversational UI 
