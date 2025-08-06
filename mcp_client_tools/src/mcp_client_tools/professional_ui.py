@@ -907,7 +907,13 @@ PROFESSIONAL_HTML_TEMPLATE = """
 
         function connectWebSocket() {
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsUrl = protocol + '//' + window.location.host + '/ws';
+            
+            // Check if we're running through ingress (has /pride/services/pride-mcp in path)
+            const isIngress = window.location.pathname.includes('/pride/services/pride-mcp');
+            
+            // Use appropriate WebSocket path
+            const wsPath = isIngress ? '/pride/services/pride-mcp/ui/ws' : '/ws';
+            const wsUrl = protocol + '//' + window.location.host + wsPath;
             
             ws = new WebSocket(wsUrl);
             

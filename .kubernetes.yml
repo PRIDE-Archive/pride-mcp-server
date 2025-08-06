@@ -280,6 +280,14 @@ spec:
             name: $app_name-ui-service
             port:
               number: 9090
+      # WebSocket endpoint - routes /pride/services/pride-mcp/ui/ws to UI service WebSocket
+      - path: /pride/services/pride-mcp/ui/ws
+        pathType: Exact
+        backend:
+          service:
+            name: $app_name-ui-service
+            port:
+              number: 9090
       # Analytics Dashboard - routes /pride/services/pride-mcp/analytics/* to analytics service
       - path: /pride/services/pride-mcp/analytics(/|$)(.*)
         pathType: Prefix
