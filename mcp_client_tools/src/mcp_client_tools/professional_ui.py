@@ -1160,14 +1160,19 @@ async def home(request: Request):
     
     # Use external ingress URL for MCP server communication
     # The MCP server is exposed via ingress at /pride/services/pride-mcp/mcp/
-    if 'caas.ebi.ac.uk' in request_host or ':' in request_host:
+    if 'www.ebi.ac.uk' in request_host:
         # External access - use ingress URL
-        display_url = f"http://{request_host}/pride/services/pride-mcp/mcp/"
-        print("display da external ingress" + display_url)
+        display_url = f"https://{request_host}/pride/services/pride-mcp/mcp/"
+        print("display da external ebi" + display_url)
     else:
-        # Local development - use localhost
-        display_url = "http://127.0.0.1:9001/mcp/"
-        print("display da localhost" + display_url)
+        if 'caas.ebi.ac.uk' in request_host or ':' in request_host:
+            # External access - use ingress URL
+            display_url = f"http://{request_host}/pride/services/pride-mcp/mcp/"
+            print("display da external ingress" + display_url)
+        else:
+            # Local development - use localhost
+            display_url = "http://127.0.0.1:9001/mcp/"
+            print("display da localhost" + display_url)
 
 
     print("display da" + display_url)
