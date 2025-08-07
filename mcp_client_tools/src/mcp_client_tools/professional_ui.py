@@ -1158,36 +1158,16 @@ async def home(request: Request):
 
     print("request da" + request_url)
     
-    # Detect the access method and show appropriate MCP server URL
-    if '/pride/services/pride-mcp/ui' in request_url:
-        # User is accessing through ingress - show ingress MCP URL
-        # Extract the base URL and replace UI path with MCP path
-        base_url = request_url.replace('/pride/services/pride-mcp/ui', '')
-        display_url = f"{base_url}/pride/services/pride-mcp/mcp/"
-        print("display da in ingresss" + display_url)
-    elif 'localhost' in request_host or '127.0.0.1' in request_host:
-        # User is accessing locally - show localhost MCP URL
-        display_url = f"http://{request_host.replace(':9090', ':9001')}/mcp/"
-        print("display da in localhost" + display_url)
+    # Use external ingress URL for MCP server communication
+    # The MCP server is exposed via ingress at /pride/services/pride-mcp/mcp/
+    if 'caas.ebi.ac.uk' in request_host or ':' in request_host:
+        # External access - use ingress URL
+        display_url = f"http://{request_host}/pride/services/pride-mcp/mcp/"
+        print("display da external ingress" + display_url)
     else:
-        # User is accessing via NodePort - show NodePort MCP URL
-        # Extract the host and port from the request
-        if ':' in request_host:
-            host_part = request_host.split(':')[0]
-            port_part = request_host.split(':')[1]
-            # Map UI port to MCP port based on current NodePort configuration
-            if port_part == '9090':
-                mcp_port = '31188'
-            elif port_part == '31429':  # NodePort for UI
-                mcp_port = '31188'      # NodePort for MCP
-            elif port_part == '32378':  # NodePort for UI
-                mcp_port = '31188'      # NodePort for MCP (not ingress)
-            else:
-                mcp_port = '31188'  # Default MCP NodePort
-            display_url = f"http://{host_part}:{mcp_port}/mcp/"
-        else:
-            display_url = f"http://{request_host}:31188/mcp/"
-        print("display da in else" + display_url)
+        # Local development - use localhost
+        display_url = "http://127.0.0.1:9001/mcp/"
+        print("display da localhost" + display_url)
 
 
     print("display da" + display_url)
