@@ -7,7 +7,7 @@ from database import db
 from slack_integration import slack
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.WARNING)  # Reduce noise from health checks
 logger = logging.getLogger(__name__)
 
 # Create a new FastAPI app for API endpoints only
