@@ -1461,6 +1461,10 @@ async def handle_user_message(websocket: WebSocket, user_message: str):
                         }))
                         
                         # Call fetch_projects
+                        # Log the MCP server URL being used for fetch_projects call
+                        logger.info(f"🔗 MCP Server URL for fetch_projects: {mcp_client.mcp_server_url}")
+                        logger.info(f"📡 About to call MCP tool 'fetch_projects' via {mcp_client.mcp_server_url}/mcp/")
+                        
                         projects_result = await mcp_client.call_tool_async("fetch_projects", {
                             "keyword": user_keyword,
                             "filters": filters,
@@ -1579,6 +1583,11 @@ async def handle_user_message(websocket: WebSocket, user_message: str):
                     
                     # Get project details
                     logger.info(f"🔍 Calling get_project_details with accession: '{accession}' (type: {type(accession)})")
+                    
+                    # Log the MCP server URL being used for get_project_details call
+                    logger.info(f"🔗 MCP Server URL for get_project_details: {mcp_client.mcp_server_url}")
+                    logger.info(f"📡 About to call MCP tool 'get_project_details' via {mcp_client.mcp_server_url}/mcp/ for project {accession}")
+                    
                     details_result = await mcp_client.call_tool_async("get_project_details", {"project_accession": accession})
                     
                     # Extract title for logging - handle the nested MCP response structure
@@ -1655,6 +1664,9 @@ async def handle_user_message(websocket: WebSocket, user_message: str):
 def create_ai_conversational_ui(mcp_server_url: str, port: int = 9090):
     """Create and configure the AI conversational web UI."""
     global mcp_client
+    
+    # Log the MCP server URL being used for client initialization
+    logger.info(f"🔗 Initializing MCP client with URL: {mcp_server_url}")
     
     # Initialize MCP client
     mcp_client = MCPClient(mcp_server_url)

@@ -1381,6 +1381,10 @@ async def handle_user_message(websocket: WebSocket, user_message: str):
             parameters = tool_call["parameters"]
             logger.info(f"🔧 Executing tool: {tool_name} with parameters: {parameters}")
             
+            # Log the MCP server URL being used for this tool call
+            logger.info(f"🔗 MCP Server URL for {tool_name}: {mcp_client.mcp_server_url}")
+            logger.info(f"📡 About to call MCP tool '{tool_name}' via {mcp_client.mcp_server_url}/mcp/")
+            
             # Execute tool with timeout protection
             try:
                 result = await asyncio.wait_for(
@@ -1426,6 +1430,10 @@ async def handle_user_message(websocket: WebSocket, user_message: str):
                     
                     # Always call fetch_projects after facets
                     try:
+                        # Log the MCP server URL being used for fetch_projects call
+                        logger.info(f"🔗 MCP Server URL for fetch_projects: {mcp_client.mcp_server_url}")
+                        logger.info(f"📡 About to call MCP tool 'fetch_projects' via {mcp_client.mcp_server_url}/mcp/")
+                        
                         result = await asyncio.wait_for(
                             asyncio.to_thread(mcp_client.call_tool, "fetch_projects", {
                                 "keyword": user_keyword,
@@ -1561,6 +1569,10 @@ async def handle_user_message(websocket: WebSocket, user_message: str):
                     
                     # Get project details with proper error handling and timeout
                     try:
+                        # Log the MCP server URL being used for get_project_details call
+                        logger.info(f"🔗 MCP Server URL for get_project_details: {mcp_client.mcp_server_url}")
+                        logger.info(f"📡 About to call MCP tool 'get_project_details' via {mcp_client.mcp_server_url}/mcp/ for project {accession}")
+                        
                         details_result = await asyncio.wait_for(
                             asyncio.to_thread(
                                 mcp_client.call_tool, "get_project_details", {"project_accession": accession}
@@ -1811,6 +1823,9 @@ async def handle_user_message(websocket: WebSocket, user_message: str):
 def create_professional_ui(mcp_server_url: str, port: int = 9090):
     """Create and configure the professional UI server."""
     global mcp_client
+    
+    # Log the MCP server URL being used for client initialization
+    logger.info(f"🔗 Initializing MCP client with URL: {mcp_server_url}")
     
     # Initialize MCP client
     mcp_client = MCPClient(mcp_server_url)
