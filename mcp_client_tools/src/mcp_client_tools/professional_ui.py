@@ -1896,7 +1896,7 @@ if __name__ == "__main__":
     import argparse
     
     parser = argparse.ArgumentParser(description="PRIDE Archive Professional UI")
-    parser.add_argument("--server-url", default="http://127.0.0.1:9000", help="MCP server URL")
+    parser.add_argument("--server-url", default="http://127.0.0.1:9001", help="MCP server URL")
     parser.add_argument("--port", type=int, default=9090, help="UI server port")
     parser.add_argument("--host", default="127.0.0.1", help="UI server host")
     

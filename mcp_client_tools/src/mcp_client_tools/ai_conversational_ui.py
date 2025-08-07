@@ -1674,7 +1674,7 @@ if __name__ == "__main__":
     import argparse
     
     parser = argparse.ArgumentParser(description="MCP AI Conversational UI")
-    parser.add_argument("--server-url", default="http://127.0.0.1:9000", 
+    parser.add_argument("--server-url", default="http://127.0.0.1:9001", 
                        help="MCP server URL")
     parser.add_argument("--port", type=int, default=9090, 
                        help="Web server port")

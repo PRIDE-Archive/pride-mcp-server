@@ -21,6 +21,8 @@ app = FastAPI(
 from api_endpoints import api_router
 app.include_router(api_router, prefix="/api")
 
+
+
 # Add CORS middleware to allow requests from the UI
 app.add_middleware(
     CORSMiddleware,
