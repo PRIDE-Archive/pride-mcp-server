@@ -1155,6 +1155,8 @@ async def home(request: Request):
     # Dynamically determine the display URL based on how the user is accessing the UI
     request_url = str(request.url)
     request_host = request.headers.get('host', 'localhost:9090')
+
+    print("request da" + request_url)
     
     # Detect the access method and show appropriate MCP server URL
     if '/pride/services/pride-mcp/ui' in request_url:
@@ -1162,9 +1164,11 @@ async def home(request: Request):
         # Extract the base URL and replace UI path with MCP path
         base_url = request_url.replace('/pride/services/pride-mcp/ui', '')
         display_url = f"{base_url}/pride/services/pride-mcp/mcp/"
+        print("display da in ingresss" + display_url)
     elif 'localhost' in request_host or '127.0.0.1' in request_host:
         # User is accessing locally - show localhost MCP URL
         display_url = f"http://{request_host.replace(':9090', ':9001')}/mcp/"
+        print("display da in localhost" + display_url)
     else:
         # User is accessing via NodePort - show NodePort MCP URL
         # Extract the host and port from the request
@@ -1183,6 +1187,10 @@ async def home(request: Request):
             display_url = f"http://{host_part}:{mcp_port}/mcp/"
         else:
             display_url = f"http://{request_host}:31188/mcp/"
+        print("display da in else" + display_url)
+
+
+    print("display da" + display_url)
     
     # Replace the template variable
     template_content = PROFESSIONAL_HTML_TEMPLATE.replace('{{ mcp_server_url }}', display_url)
