@@ -317,8 +317,7 @@ def start_analytics_ui():
         # Start the analytics server with proper arguments
         analytics_process = subprocess.Popen([
             sys.executable, "serve_analytics.py",
-            "--port", "8080",
-            "--host", "0.0.0.0"
+            "--port", "8080"
         ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1, universal_newlines=True)
         
         # Start a thread to read and display output in real-time
